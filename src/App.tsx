@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import HomePage from './components/HomePage';
@@ -11,14 +13,17 @@ import EquipmentPage from './components/EquipmentPage';
 import GmSkillsPage from './components/GmSkillsPage';
 import GmPlayerNotesPage from './components/GmPlayerNotesPage';
 import LoreSectionPage from './components/LoreSectionPage';
-// import NotesPage from './components/NotesPage';
 import PlayerNotesCloudPage from './components/PlayerNotesCloudPage';
 import CampaignPage from './components/CampaignPage';
+import UserProfilePage from './components/UserProfilePage';
+import GazettePage from './components/GazettePage';
+import ItemsPage from './components/GmItemsPage';
 
 const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/profile" element={<UserProfilePage />} />
       <Route path="/character-sheet" element={<CharacterSheetPage />} />
       <Route path="/gm-hub" element={<GmHubPage />} />
       <Route path="/player-sheets" element={<PlayerSheetsListPage />} />
@@ -32,6 +37,8 @@ const App: React.FC = () => {
       <Route path="/notes" element={<PlayerNotesCloudPage />} />
       <Route path="/lore/:sectionId" element={<LoreSectionPage />} />
       <Route path="/campaign" element={<CampaignPage />} />
+      <Route path="/gazette" element={<GazettePage />} />
+      <Route path="/gm-items" element={<ItemsPage />} />
     </Routes>
   );
 };

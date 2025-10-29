@@ -16,6 +16,18 @@ export type SkillBranch = {
   perksState?: boolean[]; // align to perks length if present
 };
 
+// НОВЫЙ ТИП: Описание атаки, связанной с навыком
+export type SkillAttackData = {
+  name?: string; // Имя может быть в самом навыке
+  damage: string;
+  damageType: string;
+  range: string;
+  saveType: string;
+  castingTime: string;
+  manaCost: string;
+  effect: string;
+};
+
 export type Skill = {
   id?: string;
   name: string;
@@ -31,6 +43,8 @@ export type Skill = {
   createdAt?: number;
   updatedAt?: number;
   branches: SkillBranch[];
+  hasAttack?: boolean;
+  attack?: SkillAttackData;
 };
 
 export type SkillCatalogEntry = Skill & { id: string };
@@ -46,6 +60,7 @@ export type InventoryCategoryId =
   | 'currency';
 
 export type InventoryItem = {
+  weight: number;
   id: string;
   name: string;
   category: InventoryCategoryId;

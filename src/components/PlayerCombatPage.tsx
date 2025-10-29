@@ -278,7 +278,11 @@ const PlayerCombatPage: React.FC = () => {
                 const hideMp = p.showMp === false;
                 const stateLabel = pct > 70 ? 'Отлично' : pct > 30 ? 'Средне' : 'Плохо';
                 const stateClass = pct > 70 ? 'ok' : pct > 30 ? 'mid' : 'bad';
+                
+                // *** ИЗМЕНЕНИЕ ЗДЕСЬ ***
                 const t = (p.type as 'player' | 'npc' | 'ally' | 'enemy') || 'player';
+                // *** КОНЕЦ ИЗМЕНЕНИЯ ***
+
                 const typeLabel = t === 'enemy' ? 'Противник' : t === 'ally' ? 'Союзник' : t === 'npc' ? 'NPC' : 'Игрок';
                 const typeIcon = isMe ? 'fa-star' : t === 'enemy' ? 'fa-skull-crossbones' : t === 'ally' ? 'fa-handshake' : t === 'npc' ? 'fa-user' : 'fa-user-astronaut';
                 
@@ -287,7 +291,12 @@ const PlayerCombatPage: React.FC = () => {
                 const acVal = typeof p.ac === 'number' ? p.ac : 0;
 
                 return (
-                  <li key={p.id} className={`pc-queue-item${active ? ' is-active' : ''}${isMe ? ' is-me' : ''}`}>
+                  <li 
+                    key={p.id} 
+                    // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Добавлен `is-type-${t}` ***
+                    className={`pc-queue-item${active ? ' is-active' : ''}${isMe ? ' is-me' : ''} is-type-${t}`}
+                    // *** КОНЕЦ ИЗМЕНЕНИЯ ***
+                  >
                     <div className="pc-queue-left">
                       <div className="pc-initiative-badge">{p.initiative ?? 0}</div>
                       {/* ИЗМЕНЕНИЕ: Обновлена структура для отображения КД */}

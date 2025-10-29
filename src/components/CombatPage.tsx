@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, deleteDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; // <--- Добавлены arrayUnion, arrayRemove
+// vvv ДОБАВЛЕНЫ 'writeBatch', 'where' vvv
+import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, deleteDoc, arrayUnion, arrayRemove, writeBatch, where } from 'firebase/firestore'; 
 import type { Unsubscribe } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { getIdTokenResult, onAuthStateChanged } from 'firebase/auth';
@@ -27,8 +28,8 @@ type Participant = {
   mpMax?: number | '';
   showAc?: boolean;
   showMp?: boolean;
-  conditions: string[]; // <--- Добавлено
-  effects: string[]; // <--- Добавлено
+  conditions: string[]; 
+  effects: string[]; 
 };
 
 type Invite = {
@@ -39,6 +40,12 @@ type Invite = {
   characterName?: string;
   targetUid?: string;
   participantId?: string;
+};
+
+// vvv ДОБАВЛЕН ТИП ДЛЯ ШАБЛОНА vvv
+type CombatTemplate = {
+  id: string;
+  name: string;
 };
 
 const CombatPage: React.FC = () => {
@@ -62,12 +69,18 @@ const CombatPage: React.FC = () => {
   type Meta = { round: number; activeIndex: number; status: 'idle' | 'active' | 'ended' };
   const [meta, setMeta] = useState<Meta>({ round: 1, activeIndex: 0, status: 'idle' });
 
-  // Стейты для новых инпутов состояний/эффектов
   const [newCondition, setNewCondition] = useState('');
   const [newEffect, setNewEffect] = useState('');
 
+  // vvv ДОБАВЛЕНЫ СОСТОЯНИЯ ДЛЯ ШАБЛОНОВ vvv
+  const [templates, setTemplates] = useState<CombatTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [templateLoading, setTemplateLoading] = useState(false);
+  // ^^^ КОНЕЦ НОВЫХ СОСТОЯНИЙ ^^^
+
   // Resolve auth and role (copying approach from HomePage)
   useEffect(() => {
+    // ... (этот useEffect без изменений)
     const unsub = onAuthStateChanged(auth, async (usr) => {
       setUserUid(usr?.uid ?? null);
       if (!usr) {
@@ -102,6 +115,7 @@ const CombatPage: React.FC = () => {
 
   // Subscribe to combat data (participants and invites)
   useEffect(() => {
+    // ... (этот useEffect без изменений)
     let unsubscribers: Unsubscribe[] = [];
     if (!combatId) return;
 
@@ -113,7 +127,6 @@ const CombatPage: React.FC = () => {
       setParticipants(
         snap.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<Participant, 'id'>) }))
-          // Сортировка по сумме (init + dex)
           .sort((a, b) => {
             const totalA = (a.initiative || 0) + (Number(a.dexMod) || 0);
             const totalB = (b.initiative || 0) + (Number(b.dexMod) || 0);
@@ -139,8 +152,33 @@ const CombatPage: React.FC = () => {
     };
   }, [combatId]);
 
+  // vvv ДОБАВЛЕН useEffect ДЛЯ ЗАГРУЗКИ ШАБЛОНОВ vvv
+  useEffect(() => {
+    if (!userUid) {
+      setTemplates([]);
+      return;
+    }
+    // Загружаем шаблоны, принадлежащие текущему ГМу
+    const q = query(
+      collection(db, 'combatTemplates'),
+      where('ownerUid', '==', userUid),
+      orderBy('name', 'asc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, name: d.data().name as string }));
+      setTemplates(list);
+      // Автоматически выбираем первый шаблон в списке, если он есть
+      if (list.length > 0 && !selectedTemplateId) {
+        setSelectedTemplateId(list[0].id);
+      }
+    });
+    return () => unsub();
+  }, [userUid]);
+  // ^^^ КОНЕЦ НОВОГО useEffect ^^^
+
   // Auto-create participant when invite accepted
   useEffect(() => {
+    // ... (этот useEffect без изменений)
     const run = async () => {
       if (!combatId) return;
       for (const inv of invites) {
@@ -187,8 +225,8 @@ const CombatPage: React.FC = () => {
               initiative: 0,
               characterId: chId || null,
               createdAt: serverTimestamp(),
-              conditions: [], // <--- Добавлено
-              effects: [], // <--- Добавлено
+              conditions: [], 
+              effects: [], 
             });
             await updateDoc(doc(db, 'combats', combatId, 'invites', inv.id), { participantId: partRef.id });
             if (inv.targetUid) {
@@ -208,6 +246,7 @@ const CombatPage: React.FC = () => {
 
   // Load available characters for inviting (GM view)
   useEffect(() => {
+    // ... (этот useEffect без изменений)
     const loadChars = async () => {
       try {
         const q = query(collection(db, 'characterSheets'), orderBy('updatedAt', 'desc'));
@@ -226,6 +265,7 @@ const CombatPage: React.FC = () => {
   }, []);
 
   const handleCreateCombat = async () => {
+    // ... (эта функция без изменений)
     if (!userUid) {
       setError('Необходима авторизация.');
       return;
@@ -246,6 +286,7 @@ const CombatPage: React.FC = () => {
   };
 
   const handleInvite = async (e: FormEvent) => {
+    // ... (эта функция без изменений)
     e.preventDefault();
     if (!combatId || !selectedCharId) return;
     const ch = characters.find((c) => c.id === selectedCharId);
@@ -284,18 +325,21 @@ const CombatPage: React.FC = () => {
   const blocked = !loading && role !== 'gm';
 
   const startCombat = async () => {
+    // ... (эта функция без изменений)
     if (!combatId) return;
     const combatDoc = doc(db, 'combats', combatId);
     await updateDoc(combatDoc, { status: 'active', round: 1, activeIndex: 0 });
   };
 
   const endCombat = async () => {
+    // ... (эта функция без изменений)
     if (!combatId) return;
     const combatDoc = doc(db, 'combats', combatId);
     await updateDoc(combatDoc, { status: 'ended' });
   };
 
   const nextTurn = async () => {
+    // ... (эта функция без изменений)
     if (!combatId) return;
     const cnt = participants.length;
     if (cnt === 0) return;
@@ -306,6 +350,7 @@ const CombatPage: React.FC = () => {
   };
 
   const prevTurn = async () => {
+    // ... (эта функция без изменений)
     if (!combatId) return;
     const cnt = participants.length;
     if (cnt === 0) return;
@@ -316,6 +361,7 @@ const CombatPage: React.FC = () => {
   };
 
   const addQuickParticipant = async () => {
+    // ... (эта функция без изменений)
     if (!combatId) return;
     try {
       const ref = await addDoc(collection(db, 'combats', combatId, 'participants'), {
@@ -332,8 +378,8 @@ const CombatPage: React.FC = () => {
         showAc: false,
         initiative: 0,
         createdAt: serverTimestamp(),
-        conditions: [], // <--- Добавлено
-        effects: [], // <--- Добавлено
+        conditions: [], 
+        effects: [], 
       });
       setSelectedId(ref.id);
     } catch (e) {
@@ -343,20 +389,21 @@ const CombatPage: React.FC = () => {
   };
 
   const updateSelected = async (patch: Partial<Participant>) => {
+    // ... (эта функция без изменений)
     if (!combatId || !selected) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), patch as Record<string, unknown>);
   };
 
   const rollD20ForInitiative = async () => {
+    // ... (эта функция без изменений)
     if (!selected) return;
-    // const dex = Number(selected.dexMod || 0); // <-- Старая логика
     const roll = Math.floor(Math.random() * 20) + 1;
-    // const total = dex + roll; // <-- Старая логика
     await updateSelected({ initiative: roll });
   };
 
   // --- Функции для управления Состояниями и Эффектами ---
   const addCondition = async () => {
+    // ... (эта функция без изменений)
     if (!combatId || !selected || !newCondition.trim()) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       conditions: arrayUnion(newCondition.trim())
@@ -364,12 +411,14 @@ const CombatPage: React.FC = () => {
     setNewCondition('');
   };
   const removeCondition = async (condition: string) => {
+    // ... (эта функция без изменений)
     if (!combatId || !selected) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       conditions: arrayRemove(condition)
     });
   };
   const addEffect = async () => {
+    // ... (эта функция без изменений)
     if (!combatId || !selected || !newEffect.trim()) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       effects: arrayUnion(newEffect.trim())
@@ -377,6 +426,7 @@ const CombatPage: React.FC = () => {
     setNewEffect('');
   };
   const removeEffect = async (effect: string) => {
+    // ... (эта функция без изменений)
     if (!combatId || !selected) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       effects: arrayRemove(effect)
@@ -384,9 +434,139 @@ const CombatPage: React.FC = () => {
   };
   // --- Конец функций ---
 
+  // vvv ДОБАВЛЕНЫ ФУНКЦИИ ДЛЯ ШАБЛОНОВ vvv
+
+  /**
+   * Сохраняет текущих участников (кроме игроков) как новый шаблон.
+   */
+  const handleSaveTemplate = async () => {
+    const nonPlayerParticipants = participants.filter(p => p.type !== 'player' && !p.ownerUid);
+
+    if (!userUid || nonPlayerParticipants.length === 0) {
+      setError('Нет участников (кроме игроков) для сохранения в шаблон.');
+      return;
+    }
+    
+    const name = prompt('Введите название шаблона (н-р, "Гоблины x5"):');
+    if (!name || !name.trim()) return;
+
+    setTemplateLoading(true);
+    setError(null);
+    try {
+      // 1. Создаем основной документ шаблона
+      const templateRef = await addDoc(collection(db, 'combatTemplates'), {
+        name: name.trim(),
+        ownerUid: userUid,
+        createdAt: serverTimestamp(),
+      });
+
+      // 2. Пакетно записываем всех участников (кроме игроков) в подколлекцию
+      const batch = writeBatch(db);
+      const templatePartsCol = collection(db, 'combatTemplates', templateRef.id, 'participants');
+      
+      for (const p of nonPlayerParticipants) {
+        const { id, ...data } = p; // Убираем 'id' из live-боя
+        batch.set(doc(templatePartsCol), data); // Firestore сгенерирует новый ID
+      }
+
+      await batch.commit();
+      alert('Шаблон сохранен! (Участники-игроки были пропущены)');
+    } catch (e) {
+      console.error(e);
+      setError('Не удалось сохранить шаблон.');
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
+  /**
+   * Загружает участников из выбранного шаблона в текущий бой.
+   */
+  const handleLoadTemplate = async () => {
+    if (!combatId || !selectedTemplateId) {
+      setError('Шаблон не выбран.');
+      return;
+    }
+    setTemplateLoading(true);
+    setError(null);
+    try {
+      // 1. Получаем всех участников из подколлекции шаблона
+      const templatePartsCol = collection(db, 'combatTemplates', selectedTemplateId, 'participants');
+      const snap = await getDocs(templatePartsCol);
+      
+      if (snap.empty) {
+        setError('Выбранный шаблон пуст.');
+        setTemplateLoading(false);
+        return;
+      }
+
+      // 2. Пакетно записываем их в подколлекцию *текущего* боя
+      const batch = writeBatch(db);
+      const combatPartsCol = collection(db, 'combats', combatId, 'participants');
+      
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        // Добавляем 'createdAt' для нового участника
+        const newParticipantData = {
+          ...data,
+          createdAt: serverTimestamp(),
+        };
+        batch.set(doc(combatPartsCol), newParticipantData);
+      }
+
+      await batch.commit();
+    } catch (e) {
+      console.error(e);
+      setError('Не удалось загрузить шаблон.');
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
+  /**
+   * Удаляет выбранный шаблон (включая всех участников внутри него).
+   */
+  const handleDeleteTemplate = async () => {
+    if (!selectedTemplateId) return;
+    
+    if (!confirm(`Вы уверены, что хотите удалить шаблон "${templates.find(t => t.id === selectedTemplateId)?.name}"? Это действие нельзя отменить.`)) {
+      return;
+    }
+    
+    setTemplateLoading(true);
+    setError(null);
+    try {
+      const templateRef = doc(db, 'combatTemplates', selectedTemplateId);
+      const templatePartsCol = collection(db, 'combatTemplates', selectedTemplateId, 'participants');
+      
+      // 1. Удаляем всех участников из подколлекции
+      const snap = await getDocs(templatePartsCol);
+      const batch = writeBatch(db);
+      snap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      // 2. Удаляем сам документ шаблона
+      await deleteDoc(templateRef);
+
+      setSelectedTemplateId(''); // Сбрасываем выбор
+      alert('Шаблон удален.');
+
+    } catch (e) {
+      console.error(e);
+      setError('Не удалось удалить шаблон.');
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+  // ^^^ КОНЕЦ ФУНКЦИЙ ДЛЯ ШАБЛОНОВ ^^^
+
+
   return (
     <div className="combat-root">
       <header className="combat-header">
+        {/* ... (header без изменений) ... */}
         <div>
           <h1>Боевые инструменты</h1>
           <p>Настройте участников и управляйте ходом боя в реальном времени.</p>
@@ -434,12 +614,62 @@ const CombatPage: React.FC = () => {
                 )}
               </div>
 
+              {/* vvv ДОБАВЛЕН БЛОК ШАБЛОНОВ vvv */}
+              {combatId && (
+                <div className="combat-card">
+                  <div className="combat-card-title">Шаблоны боя</div>
+                  <div className="template-form">
+                    <select 
+                      value={selectedTemplateId} 
+                      onChange={(e) => setSelectedTemplateId(e.target.value)}
+                      disabled={templates.length === 0 || templateLoading}
+                    >
+                      {templates.length === 0 && <option>Нет сохраненных шаблонов</option>}
+                      {templates.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <div className="template-buttons">
+                      <button 
+                        className="btn" 
+                        onClick={handleLoadTemplate} 
+                        disabled={!selectedTemplateId || templateLoading}
+                        title="Загрузить участников из шаблона в этот бой"
+                      >
+                        <i className="fa-solid fa-download" /> Загрузить
+                      </button>
+                      <button 
+                        className="btn btn-secondary" 
+                        onClick={handleSaveTemplate}
+                        disabled={templateLoading || participants.filter(p => p.type !== 'player' && !p.ownerUid).length === 0}
+                        title="Сохранить всех (кроме игроков) из этого боя как новый шаблон"
+                      >
+                        <i className="fa-solid fa-save" /> Сохранить
+                      </button>
+                    </div>
+                    {selectedTemplateId && (
+                      <button 
+                        className="btn btn-danger btn-small" 
+                        onClick={handleDeleteTemplate}
+                        disabled={templateLoading}
+                        style={{ gridColumn: '1 / -1' }} // Кнопка на всю ширину
+                      >
+                        <i className="fa-solid fa-trash" /> Удалить выбранный шаблон
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* ^^^ КОНЕЦ БЛОКА ШАБЛОНОВ ^^^ */}
+
+
               <div className="combat-card">
                 <div className="combat-card-title">Очередь инициативы</div>
                 {participants.length === 0 ? (
                   <p className="muted">Пока нет участников</p>
                 ) : (
                   <ul className="initiative-list">
+                    {/* ... (map по participants без изменений) ... */}
                     {participants.map((p, idx) => {
                       const hpVal = Number(p.hp ?? 0);
                       const hpMaxVal = Math.max(0, Number(p.hpMax ?? 0));
@@ -448,10 +678,11 @@ const CombatPage: React.FC = () => {
                       const mpMaxVal = Math.max(0, Number(p.mpMax ?? 0));
                       const mpPct = mpMaxVal > 0 ? Math.max(0, Math.min(100, (mpVal / mpMaxVal) * 100)) : 0;
                       const hCls = pct > 70 ? 'is-high' : pct > 30 ? 'is-mid' : 'is-low';
+                      const pType = p.type || 'player'; 
                       return (
                         <li
                           key={p.id}
-                          className={`initiative-item${selectedId === p.id ? ' is-selected' : ''}${meta.status === 'active' && meta.activeIndex === idx ? ' is-active' : ''}`}
+                          className={`initiative-item${selectedId === p.id ? ' is-selected' : ''}${meta.status === 'active' && meta.activeIndex === idx ? ' is-active' : ''} is-type-${pType}`}
                           onClick={() => setSelectedId(p.id)}
                           role="button"
                         >
@@ -462,7 +693,6 @@ const CombatPage: React.FC = () => {
                                 <i className="fa-solid fa-shield" /> {p.ac || 0}
                               </span>
                             </div>
-                            {/* Отображаем сумму */}
                             <span className="initiative-score">{(p.initiative || 0) + (Number(p.dexMod) || 0)}</span>
                           </div>
                           <div className="hp-row">
@@ -477,7 +707,6 @@ const CombatPage: React.FC = () => {
                             </div>
                             <span className="hp-text">{mpVal}/{mpMaxVal}</span>
                           </div>
-                          {/* --- Добавлен блок тегов --- */}
                           {(p.conditions?.length > 0 || p.effects?.length > 0) && (
                             <div className="participant-tags">
                               {(p.conditions || []).map(c => <span key={c} className="tag is-condition">{c}</span>)}
@@ -498,6 +727,7 @@ const CombatPage: React.FC = () => {
 
               {combatId && (
                 <div className="combat-card">
+                   {/* ... (блок Приглашения без изменений) ... */}
                   <div className="combat-card-title">Приглашения</div>
                   <form onSubmit={handleInvite} className="invite-form invite-form--chars">
                     <select value={selectedCharId} onChange={(e) => setSelectedCharId(e.target.value)}>
@@ -536,6 +766,7 @@ const CombatPage: React.FC = () => {
 
             {/* Правая колонка */}
             <section className="combat-right">
+               {/* ... (блок Сводка боя без изменений) ... */}
               <div className="combat-card">
                 <div className="combat-card-title">Сводка боя</div>
                 <div className="summary-bar">{meta.status === 'idle' && 'Бой ожидает начала.'}{meta.status === 'active' && `Идёт бой. Раунд ${meta.round}.`}{meta.status === 'ended' && 'Бой завершён.'}</div>
@@ -547,6 +778,7 @@ const CombatPage: React.FC = () => {
                   <p className="muted">Выберите участника из очереди слева.</p>
                 ) : (
                   <form className="participant-form" onSubmit={(e) => e.preventDefault()}>
+                     {/* ... (вся <form className="participant-form"> без изменений) ... */}
                     <label>
                       Имя участника
                       <input
@@ -570,7 +802,6 @@ const CombatPage: React.FC = () => {
                       </select>
                     </label>
 
-                    {/* Обновлено поле инициативы */}
                     <label>
                       Инициатива (Бросок / База)
                       <input
@@ -581,7 +812,6 @@ const CombatPage: React.FC = () => {
                       />
                     </label>
 
-                    {/* Обновлен onChange для Мод. Ловкости */}
                     <label>
                       Модификатор Ловкости
                       <input
@@ -635,7 +865,6 @@ const CombatPage: React.FC = () => {
                             </div>
                             <span className="hp-text">{cur} / {max}</span>
                           </div>
-                          {/* ИЗМЕНЕНИЕ: Удалены кнопки, обновлена сетка */}
                           <div className="gm-hp-controls">
                             <input type="number" value={cur} onChange={(e) => setHp(Number(e.target.value))} />
                             <div className="hp-text">/</div>
@@ -645,7 +874,6 @@ const CombatPage: React.FC = () => {
                       );
                     })()}
 
-                    {/* --- Добавлен блок Маны (MP) --- */}
                     {(() => {
                       const cur = Number(selected.mp ?? 0);
                       const max = Math.max(0, Number(selected.mpMax ?? 0));
@@ -683,7 +911,6 @@ const CombatPage: React.FC = () => {
                       Показывать HP всем
                     </label>
 
-                    {/* --- Добавлен чекбокс "Показывать MP" --- */}
                     <label className="checkbox-row">
                       <input
                         type="checkbox"
@@ -702,7 +929,6 @@ const CombatPage: React.FC = () => {
                       Показывать КД всем
                     </label>
 
-                    {/* --- Добавлен Менеджер Состояний --- */}
                     <div className="form-list-manager">
                       <label>Состояния</label>
                       <div className="tag-list">
@@ -724,7 +950,6 @@ const CombatPage: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* --- Добавлен Менеджер Эффектов --- */}
                     <div className="form-list-manager">
                       <label>Прочие эффекты</label>
                       <div className="tag-list">

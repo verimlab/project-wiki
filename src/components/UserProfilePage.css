@@ -1,0 +1,243 @@
+/* src/components/UserProfilePage.css */
+
+/* Центрируем контент профиля */
+.profile-page-main {
+  gap: 40px; /* Уменьшаем отступ */
+}
+
+.profile-page-title,
+.profile-section-title {
+  font-size: 26px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--neon, #f5f8ff);
+  margin: 0;
+  text-shadow: 0 0 18px rgba(124, 172, 255, 0.28);
+}
+
+.profile-section-title {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+
+/*
+  Главная карточка профиля.
+  Стили скопированы из .hw-modal для полного соответствия.
+*/
+.profile-card {
+  width: min(700px, 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(15, 26, 52, 0.96),
+    rgba(22, 36, 68, 0.92)
+  );
+  border-radius: 32px;
+  border: 1px solid var(--panel-border, rgba(126, 166, 255, 0.28));
+  box-shadow: 0 32px 60px rgba(6, 12, 26, 0.55);
+  padding: 32px 36px;
+  display: flex;
+  gap: 32px;
+}
+
+/* Аватар пользователя */
+.profile-avatar {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: var(--bg-3, #10193f);
+  border: 2px solid var(--panel-border, rgba(117, 158, 255, 0.16));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar i {
+  font-size: 60px;
+  color: var(--accent, #79a8ff);
+  opacity: 0.8;
+}
+
+/* Контейнер для полей ввода */
+.profile-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Стили для лейблов, как в .hw-role */
+.profile-field label {
+  font-size: 12px;
+  opacity: 0.72;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/*
+  Стили для инпута.
+  Основаны на .hw-search-input, но более заметные.
+*/
+.profile-input {
+  background: var(--accent-soft, rgba(118, 162, 255, 0.1));
+  border: 1px solid var(--panel-border, rgba(120, 160, 255, 0.2));
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--neon, #e8f0ff);
+  font-size: 1em;
+  font-family: inherit;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.profile-input:focus {
+  outline: none;
+  border-color: var(--accent, #79a8ff);
+  background: var(--accent-soft, rgba(118, 162, 255, 0.2));
+}
+
+/*
+  Для полей "только для чтения" (Email, Роль)
+  Стили как у .hw-user-name
+*/
+.profile-text-value {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: 16px;
+  margin: 0;
+  padding: 12px 0;
+}
+
+/* Контейнер для кнопок */
+.profile-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+/* Сообщение об успехе */
+.profile-success {
+  margin: 0;
+  color: #79ffb2; /* Яркий зеленый в тему */
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+/* Сетка для статистики */
+.profile-stats-grid {
+  width: min(700px, 100%);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Карточка статистики */
+.hw-card.is-stat {
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 24px;
+}
+
+.hw-card.is-stat .hw-card-icon {
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--accent, #79a8ff);
+  line-height: 1;
+}
+
+.stat-value-small {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--neon, #f5f8ff);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(220, 230, 255, 0.7);
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+  .profile-card {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (max-width: 540px) {
+  .profile-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* src/components/UserProfilePage.css */
+
+/* ... (здесь твои существующие стили) ... */
+
+/* --- Стили для загрузки аватара --- */
+
+.profile-avatar {
+  position: relative; /* Нужно для оверлея */
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+/* Оверлей, который появляется при наведении */
+.profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 18, 36, 0.65);
+  display: grid;
+  place-items: center;
+  color: #f5f8ff;
+  font-size: 28px;
+  opacity: 0; /* Скрыт по умолчанию */
+  transition: opacity 0.2s ease;
+  backdrop-filter: blur(2px);
+}
+
+/* Показываем оверлей при наведении */
+.profile-avatar:hover .profile-avatar-overlay {
+  opacity: 1;
+}
+
+/* Состояние загрузки */
+.profile-avatar.is-uploading {
+  filter: grayscale(50%) brightness(0.8);
+}
+
+.profile-avatar.is-uploading .profile-avatar-overlay {
+  opacity: 1; /* Показываем оверлей во время загрузки */
+  font-size: 32px; /* Делаем спиннер чуть больше */
+  color: var(--accent, #79a8ff);
+}
+
+/* Скрываем иконку карандаша во время загрузки */
+.profile-avatar.is-uploading .fa-pencil {
+  display: none;
+}
+
+/* --- Стили для ошибок --- */
+.profile-error {
+  margin: 0;
+  color: #ff8b7a; /* Такой же, как в .hw-dice-error */
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}

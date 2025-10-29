@@ -11,6 +11,7 @@ import type {
   InventoryCategoryId,
   InventoryItem,
   Skill,
+  SkillAttackData,
   SkillCatalogEntry,
 } from '../types/sheet';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -23,18 +24,6 @@ import { STAT_META } from '../constants';
 import type { StatsState } from '../types/sheet';
 import { useRef } from 'react';
 import { useSkillsCatalog } from '../hooks/useSkillsCatalog';
-
-// НОВЫЙ ЛОКАЛЬНЫЙ ТИП: Описание атаки из GmSkillsPage.tsx
-type SkillAttackData = {
-  name?: string; // Имя может быть в самом навыке
-  damage: string;
-  damageType: string; // Из GmSkillsPage
-  range: string;
-  saveType: string; // Из GmSkillsPage
-  castingTime: string; // Из GmSkillsPage
-  manaCost: string; // Из GmSkillsPage
-  effect: string;
-};
 
 
 // ИЗМЕНЕНИЕ: Добавлена категория "Валюта"
@@ -197,6 +186,7 @@ const CharacterSheetPage: React.FC = () => {
     name: '',
     category: 'gear' as InventoryCategoryId,
     quantity: 1,
+    weight: 0, // НОВОЕ ПОЛЕ
     note: '',
     system: false,
     hasAttack: false,
@@ -212,6 +202,7 @@ const CharacterSheetPage: React.FC = () => {
       name: '',
       category: 'gear' as InventoryCategoryId,
       quantity: 1,
+      weight: 0,
       note: '',
       system: false,
       hasAttack: false,
@@ -239,6 +230,7 @@ const CharacterSheetPage: React.FC = () => {
       name: '',
       category: 'gear' as InventoryCategoryId,
       quantity: 1,
+      weight: 0,
       note: '',
       system: false,
       hasAttack: false,
@@ -255,6 +247,7 @@ const CharacterSheetPage: React.FC = () => {
       name: item.name,
       category: item.category || 'gear',
       quantity: item.quantity,
+      weight: item.weight || 0,
       note: item.note || '',
       system: item.system ?? false,
       hasAttack: item.hasAttack ?? false,
@@ -1110,6 +1103,20 @@ const CharacterSheetPage: React.FC = () => {
     return allAttacks;
   }, [skills]); // Зависит только от списка навыков
 
+  // НОВОЕ: Расчет общего и максимального веса
+  const totalWeight = useMemo(() => {
+    return items.reduce((total, item) => {
+      const itemWeight = Number(item.weight) || 0;
+      const itemQuantity = Number(item.quantity) || 1;
+      return total + (itemWeight * itemQuantity);
+    }, 0);
+  }, [items]);
+
+  const maxWeight = useMemo(() => {
+    const strengthScore = stats.strength.filter(Boolean).length;
+    const constitutionScore = stats.constitution.filter(Boolean).length;
+    return 25 + (strengthScore * 15) + (constitutionScore * 15);
+  }, [stats.strength, stats.constitution]);
 
   function updateAttack(itemId: string, key: keyof AttackFields, value: string) {
     // ... (без изменений)
@@ -1635,15 +1642,31 @@ const CharacterSheetPage: React.FC = () => {
             <button type="button" className="perks-modal__close" onClick={closeInventory} aria-label="Close">
               <i className="fa-solid fa-xmark" />
             </button>
-            <div className="perks-modal__header">
-              {/* Обертка, чтобы сгруппировать заголовок и кнопку слева */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="perks-modal__header" style={{ justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                 <h3 className="perks-modal__title"><i className="fa-solid fa-backpack" /> Инвентарь</h3>
                 {inventoryView === 'list' && (
                   <button type="button" className="inventory-add" onClick={openItemFormForAdd}>
                     <i className="fa-solid fa-plus" /> Добавить предмет
                   </button>
                 )}
+              </div>
+              {/* НОВЫЙ БЛОК: Отображение веса */}
+              <div 
+                className="inventory-weight-indicator"
+                title={`Текущий вес / Максимальный вес`}
+                style={{
+                  background: totalWeight > maxWeight ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 24, 48, 0.7)',
+                  color: totalWeight > maxWeight ? '#fca5a5' : '#a5b4fc',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  border: `1px solid ${totalWeight > maxWeight ? 'rgba(239, 68, 68, 0.4)' : 'rgba(120, 110, 200, 0.3)'}`
+                }}
+              >
+                <i className="fa-solid fa-weight-hanging" style={{ marginRight: '8px' }} />
+                {totalWeight.toFixed(2)} / {maxWeight.toFixed(2)} кг
               </div>
             </div>
 
@@ -1672,16 +1695,15 @@ const CharacterSheetPage: React.FC = () => {
                       {filteredItems.map((it) => (
                         <li key={it.id} className="inventory-item" onClick={() => editItem(it)} style={{ cursor: 'pointer' }}>
                           <div className="inventory-item-icon">
-                            <i className={
-                              (CATEGORIES.find((c) => c.id === it.category)?.icon || 'fa-box-open').startsWith('ri-')
-                                ? CATEGORIES.find((c) => c.id === it.category)?.icon
-                                : `fa-solid ${CATEGORIES.find((c) => c.id === it.category)?.icon || 'fa-box-open'}`
-                            } />
+                            <i className={resolveIconClass(CATEGORIES.find(c => c.id === it.category)?.icon, 'fa-box-open')} />
                           </div>
                           <div className="inventory-item-body">
                             <div className="inventory-item-top">
                               <span className="inventory-item-name">{it.name}</span>
-                              <span className="inventory-item-qty">x{it.quantity}</span>
+                              <div className="inventory-item-meta">
+                                {it.weight > 0 && <span className="inventory-item-weight">{it.weight} кг</span>}
+                                <span className="inventory-item-qty">x{it.quantity}</span>
+                              </div>
                             </div>
                             {it.note && <p className="inventory-note">{it.note}</p>}
                             <div className="inventory-tags">
@@ -1736,6 +1758,10 @@ const CharacterSheetPage: React.FC = () => {
                       <div className="inventory-form-group">
                         <label htmlFor="item-quantity">Количество</label>
                         <input id="item-quantity" className="inventory-field" type="number" min={1} step={1} value={itemForm.quantity} onChange={(e) => handleItemFormChange('quantity', Math.max(1, Number(e.target.value || 1)))} />
+                      </div>
+                      <div className="inventory-form-group" style={{gridColumn: '1 / -1'}}>
+                        <label htmlFor="item-weight">Вес (кг)</label>
+                        <input id="item-weight" className="inventory-field" type="number" min={0} step={0.1} value={itemForm.weight} onChange={(e) => handleItemFormChange('weight', Number(e.target.value || 0))} />
                       </div>
                       <div className="inventory-form-group" style={{gridColumn: '1 / -1'}}>
                         <label htmlFor="item-note">Заметки</label>
@@ -2056,7 +2082,7 @@ const CharacterSheetPage: React.FC = () => {
         }}
       >
         <span style={{ fontSize: '24px', fontWeight: 700, lineHeight: 1 }}>{inspiration || 0}</span>
-        <span style={{ fontSize: '10px', textTransform: 'uppercase', opacity: 0.8, marginTop: '2px' }}>Вдох</span>
+        <span style={{ fontSize: '10px', textTransform: 'uppercase', opacity: 0.8, marginTop: '2px' }}></span>
       </div>
     </div>
   );

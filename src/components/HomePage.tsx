@@ -1,4 +1,6 @@
-﻿﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿﻿// src/components/HomePage.tsx
+
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { User } from 'firebase/auth';
 import { getIdTokenResult, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
@@ -24,6 +26,7 @@ const sectors: Array<{ id: string; label: string; iconClass: string; restrictedT
   { id: 'creatures', label: 'Монстры', iconClass: 'fa-solid fa-dragon' },
   { id: 'items', label: 'Предметы', iconClass: 'fa-solid fa-box-open' },
   { id: 'notes', label: 'Заметки', iconClass: 'fa-regular fa-note-sticky' },
+  { id: 'gazette', label: 'Газета Кара\'нокта', iconClass: 'fa-regular fa-newspaper' },
 ];
 
 type SearchResultItem = {
@@ -128,6 +131,8 @@ const HomePage: React.FC = () => {
     races: '/lore/races',
     worlds: '/lore/worlds',
     creatures: '/lore/creatures',
+    items: '/gm-items',
+    gazette: '/gazette', 
   };
 
   const openDice = () => {
@@ -316,10 +321,12 @@ const HomePage: React.FC = () => {
               <button type="submit" className="hw-search-button" aria-label="Искать"><i className="fa-solid fa-magnifying-glass" /></button>
             </form>
             <div className="hw-user">
-              <div className="hw-identity">
+              {/* ===== НАЧАЛО ИЗМЕНЕНИЯ ===== */}
+              <Link to="/profile" className="hw-identity" title="Перейти в профиль">
                 <span className="hw-user-name">{displayName}</span>
                 <span className="hw-role">{roleLabel}</span>
-              </div>
+              </Link>
+              {/* ===== КОНЕЦ ИЗМЕНЕНИЯ ===== */}
               <button className="hw-logout" type="button" onClick={handleSignOut}>
                 <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden />
                 <span>Выйти</span>

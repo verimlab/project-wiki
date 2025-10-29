@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import type { Analytics } from 'firebase/analytics';
+import { getStorage } from 'firebase/storage';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -29,3 +30,5 @@ export const analyticsPromise: Promise<Analytics | null> =
       .then((supported) => (supported ? getAnalytics(firebaseApp) : null))
       .catch(() => null)
     : Promise.resolve(null);
+
+export const storage = getStorage(firebaseApp);

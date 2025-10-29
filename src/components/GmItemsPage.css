@@ -1,0 +1,204 @@
+/* src/components/GmItemsPage.css */
+
+/* ===== ИЗМЕНЕНИЕ: Все классы 'gmi-' заменены на 'itm-' (Items) =====
+*/
+
+/* Стили для страницы и загрузчика */
+.itm-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.itm-loader {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 20px;
+  /* Добавим отступ сверху, чтобы было по центру */
+  padding: 80px 20px; 
+}
+.itm-loader h2 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--neon);
+}
+
+/* Шапка страницы */
+.itm-header {
+  padding: 24px 40px;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--bg-2);
+}
+
+.itm-header-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+.itm-header-content h1 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--neon);
+  flex-grow: 1;
+}
+
+.itm-back-link {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+  border-radius: 14px;
+  color: #fff;
+  background: var(--bg-3);
+  border: 1px solid var(--panel-border);
+  transition: all 0.2s ease;
+}
+
+.itm-back-link:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Основной контент */
+.itm-main {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.itm-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+/* Карточка предмета */
+.itm-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+  border-radius: 18px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.itm-item-header {
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 12px;
+}
+
+.itm-item-type {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.itm-item-name {
+  margin: 0;
+  font-size: 20px;
+  color: var(--neon);
+}
+
+.itm-item-desc {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(220, 230, 255, 0.75);
+  line-height: 1.6;
+  flex-grow: 1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.itm-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: auto;
+  /* Добавим отступ, чтобы кнопка не прилипала */
+  padding-top: 10px; 
+}
+
+.itm-btn-edit,
+.itm-btn-delete {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--bg-3);
+  color: #e0e8ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.itm-btn-edit:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.itm-btn-delete:hover {
+  background: rgba(255, 116, 102, 0.15);
+  border-color: rgba(255, 116, 102, 0.4);
+  color: #ff9a8f;
+}
+
+/* Стили для формы в модальном окне */
+.itm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.itm-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.itm-form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(220, 230, 255, 0.8);
+}
+
+.itm-form-group input,
+.itm-form-group textarea {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: rgba(10, 20, 40, 0.7);
+  color: #fff;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.itm-form-group input:focus,
+.itm-form-group textarea:focus {
+  border-color: var(--accent);
+}
+
+.itm-form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}

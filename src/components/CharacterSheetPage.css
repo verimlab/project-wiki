@@ -157,6 +157,7 @@
 
 .cs-number-input-wrapper input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
+  appearance: textfield;
 }
 
 /* Обертка для позиционирования кнопок */
@@ -1267,4 +1268,41 @@
   white-space: pre-wrap; /* Сохраняет переносы строк из описания */
 }
 
-/* --- (End new styles) --- */
+.inventory-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.inventory-item-name {
+  font-weight: 600;
+  color: #e6ebff;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.inventory-item-qty {
+  border-radius: 4px;
+}
+
+.inventory-item-weight {
+  font-size: 12px;
+  font-weight: 500;
+  color: #a5b4fc;
+  background: rgba(71, 85, 105, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.inventory-note {
+  font-size: 13px;
+  color: #a0aec0;
+
+.inventory-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+}

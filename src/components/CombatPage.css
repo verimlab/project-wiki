@@ -251,4 +251,58 @@
 .form-add-tag .btn {
   padding: 8px 12px; /* smaller button */
 }
+/* --- Конец стилей --- *
+/* --- Стили по типу участника (GM) --- */
+.initiative-item.is-type-player {
+  /* Синий - Игрок */
+  border-left: 4px solid #78a0ff;
+}
+.initiative-item.is-type-ally {
+  /* Зеленый - Союзник */
+  border-left: 4px solid #49d68a;
+}
+.initiative-item.is-type-enemy {
+  /* Красный - Противник */
+  border-left: 4px solid #ff4d4d;
+}
+.initiative-item.is-type-npc {
+  /* Оранжевый - NPC */
+  border-left: 4px solid #ff9f40;
+}
+
+/* Сохраняем подсветку выбора */
+.initiative-item.is-selected {
+  outline: 2px solid #78a0ff;
+}
+/* Сохраняем подсветку активного хода (она важнее) */
+.initiative-item.is-active {
+  box-shadow: 0 0 0 2px #71ffb4 inset;
+  border-left-width: 4px; /* Убедимся, что рамка не пропадает */
+}
+/* --- Стили для Шаблонов Боя --- */
+.template-form {
+  display: grid;
+  gap: 12px;
+}
+.template-form select {
+  background: #0e1a3a;
+  color: #e6ebff;
+  border: 1px solid rgba(126, 166, 255, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 100%;
+}
+.template-form select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.template-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
 /* --- Конец стилей --- */

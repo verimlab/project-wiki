@@ -118,3 +118,36 @@
   color: #ffb8bc;
 }
 /* --- Конец стилей --- */
+/* --- Стили по типу участника (Игрок) --- */
+.pc-queue-item.is-type-player {
+  /* Синий - Игрок */
+  border-color: rgba(126, 166, 255, 0.35);
+}
+.pc-queue-item.is-type-ally {
+  /* Зеленый - Союзник */
+  border-color: rgba(73, 214, 138, 0.35);
+}
+.pc-queue-item.is-type-enemy {
+  /* Красный - Противник */
+  border-color: rgba(255, 59, 59, 0.35);
+}
+.pc-queue-item.is-type-npc {
+  /* Оранжевый - NPC */
+  border-color: rgba(255, 159, 64, 0.35);
+}
+
+/* Подсветка "Это я" (is-me) важнее */
+.pc-queue-item.is-me {
+  outline: 1px dashed rgba(121, 168, 255, 0.45);
+}
+
+/* Подсветка активного хода (is-active) - самая важная */
+.pc-queue-item.is-active,
+.pc-queue-item.is-active.is-type-player,
+.pc-queue-item.is-active.is-type-ally,
+.pc-queue-item.is-active.is-type-enemy,
+.pc-queue-item.is-active.is-type-npc {
+  border-color: #49d68a; /* Яркий зеленый для активного хода */
+  background: rgba(30, 80, 60, .45);
+}
+/* --- Конец стилей --- */

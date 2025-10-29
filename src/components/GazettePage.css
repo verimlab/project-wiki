@@ -1,0 +1,142 @@
+/* src/components/GazettePage.css */
+
+/* Уменьшенный заголовок (вместо .hw-hero) */
+.gp-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 24px 20px; /* Меньше отступов, чем у .hw-hero */
+}
+
+/* Уменьшенный главный тайтл (вместо .neon) */
+.gp-title {
+  font-family: 'Space Mono', 'Fira Code', 'Roboto Mono', 'Courier New', monospace;
+  font-weight: 700;
+  font-size: clamp(36px, 8vw, 52px); /* Значительно меньше */
+  letter-spacing: 0.18em; /* Уменьшил */
+  color: #f5f8ff;
+  text-shadow: 0 0 18px rgba(124, 172, 255, 0.28),
+    0 0 48px rgba(88, 146, 255, 0.22);
+  margin: 0;
+}
+
+/* Уменьшенный подзаголовок (вместо .subtitle) */
+.gp-subtitle {
+  color: rgba(214, 226, 255, 0.72);
+  font-size: 14px; /* Меньше */
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Сетка для выпусков газеты */
+.gp-issue-grid {
+  width: min(1200px, 100%);
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  padding: 24px 0;
+}
+
+.gp-issue-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 250px;
+  border-radius: 18px;
+  border: 1px solid var(--panel-border);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-3);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.gp-issue-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.3);
+  border-color: var(--accent);
+}
+
+.gp-issue-card-title {
+  padding: 14px 18px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.7) 30%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Кнопка для GM */
+.gp-gm-actions {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--panel-border);
+  width: min(1200px, 100%);
+}
+
+/* Модальное окно для загрузки */
+.gp-upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gp-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gp-input-group label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.gp-input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: 16px;
+}
+
+/* Модальное окно для просмотра выпуска */
+.gp-issue-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 75vh; /* Ограничиваем высоту */
+  overflow-y: auto; /* Добавляем скролл */
+  padding-right: 12px; /* Место для скроллбара */
+}
+
+/* Базовые стили для изображения в модальном окне */
+.gp-modal-image {
+  width: 100%;
+  max-height: 60vh; /* Зададим разумную высоту по умолчанию */
+  object-fit: contain;
+  border-radius: 12px;
+  background-color: #000;
+  cursor: zoom-in; /* Подсказка для пользователя */
+}
+
+.gp-modal-image:hover {
+  opacity: 0.9;
+}
