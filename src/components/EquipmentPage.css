@@ -1,0 +1,147 @@
+.eq-root {
+  max-width: min(1600px, 96vw);
+  margin: 36px auto;
+  padding: 22px;
+  background: radial-gradient(1400px 900px at 0% -30%, rgba(120, 160, 255, 0.16), transparent 60%), radial-gradient(1200px 800px at 120% 20%, rgba(160, 120, 255, 0.12), transparent 60%), rgba(10, 16, 36, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 26px 58px rgba(7, 12, 26, 0.42);
+}
+
+.eq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px 14px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.14);
+  margin-bottom: 24px;
+}
+
+.eq-header h1 {
+  margin: 0 0 6px;
+  font-size: 1.7rem;
+  letter-spacing: 0.04em;
+}
+
+.eq-sub {
+  opacity: 0.92;
+  margin: 0;
+}
+
+.eq-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8f0ff;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.eq-back:hover {
+  background: rgba(120, 160, 255, 0.14);
+  border-color: #78a0ff;
+}
+
+.eq-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.75fr 1fr;
+  gap: 24px;
+}
+
+.eq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 75vh;
+  overflow-y: auto;
+  padding-right: 12px;
+}
+
+.eq-group-title {
+  font-size: 1.2em;
+  color: #a9c1ff;
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(120, 160, 255, 0.2);
+}
+
+.eq-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eq-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(120, 160, 255, 0.05);
+  border: 1px solid transparent;
+  color: #e8f0ff;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  text-align: left;
+}
+
+.eq-item:hover {
+  background: rgba(120, 160, 255, 0.1);
+  border-color: rgba(120, 160, 255, 0.2);
+}
+
+.eq-item.is-active {
+  background: rgba(120, 160, 255, 0.15);
+  border-color: #78a0ff;
+  box-shadow: 0 0 12px rgba(120, 160, 255, 0.2);
+}
+
+.eq-item-icon {
+  font-size: 1.2em;
+  color: #78a0ff;
+  width: 24px;
+  text-align: center;
+}
+
+.eq-item-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.eq-item-name {
+  font-weight: bold;
+}
+
+.eq-item-meta {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+.eq-details {
+  /* Styles for the center column are inherited from wp-details and ap-details */
+  /* We can add specific overrides if needed */
+}
+
+@media (max-width: 1200px) {
+  .eq-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+  .eq-details {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .eq-layout {
+    grid-template-columns: 1fr;
+  }
+}

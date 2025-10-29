@@ -1,0 +1,120 @@
+.pc-root{min-height:100vh;background:#0b1534;color:#e6ebff;font-family:'Montserrat','Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;padding:36px 24px;}
+.pc-header{max-width:1200px;margin:0 auto 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;border:1px solid rgba(126,166,255,.12);border-radius:18px;background:linear-gradient(160deg, rgba(18,30,62,.65), rgba(26,40,80,.55));}
+.pc-title{display:flex;align-items:center;gap:14px}
+.pc-title h1{margin:0;font-size:clamp(24px,6vw,32px);letter-spacing:.08em;text-transform:uppercase}
+.pc-title p{margin:4px 0 0;color:#d0dcffc2;letter-spacing:.06em}
+.pc-meta{display:flex;align-items:center;gap:10px}
+.pc-status{padding:6px 10px;border-radius:999px;border:1px solid rgba(126,166,255,.2);background:#162650;color:#e6f0ff;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.pc-status--ended{background:#3b2130;border-color:#f07878}
+.pc-status--active{background:#1c3a2a;border-color:#49d68a}
+.pc-round{opacity:.9}
+.pc-exit{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:12px;border:1px solid rgba(126,166,255,.18);background:#141e3a;color:#e6ebff;text-decoration:none}
+.pc-sound{padding:8px 12px;border-radius:12px;border:1px solid rgba(126,166,255,.18);background:#162650;color:#e6f0ff;cursor:pointer}
+
+.pc-main{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.pc-left,.pc-right{display:flex;flex-direction:column;gap:16px}
+.pc-card{border:1px solid rgba(126,166,255,.15);border-radius:18px;padding:18px 20px;background:linear-gradient(160deg, rgba(18,30,62,.65), rgba(26,40,80,.55));box-shadow:0 10px 30px rgba(8,12,24,.35)}
+.pc-card-title{font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.pc-row{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.pc-subtitle{opacity:.9;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+
+.pc-initiative{display:grid;grid-template-columns:auto 1fr auto;gap:8px}
+.pc-initiative input{background:#0e1a3a;color:#e6ebff;border:1px solid rgba(126,166,255,.25);border-radius:10px;padding:10px 12px;width:100%}
+
+.pc-health{display:flex;flex-direction:column;gap:8px}
+.pc-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.pc-bar.small{height:6px}
+.pc-bar-fill{height:100%;background:linear-gradient(90deg,#63b3ff,#7da9ff)}
+/* Health coloring */
+.pc-bar-fill.is-high{background:linear-gradient(90deg,#2bdc85,#1fb273)}
+.pc-bar-fill.is-mid{background:linear-gradient(90deg,#ffd85b,#ffb03a)}
+.pc-bar-fill.is-low{background:linear-gradient(90deg,#ff6b6b,#ff3b3b)}
+.pc-bar-fill.is-mp{background:linear-gradient(90deg,#a78bfa,#8b5cf6)}
+.pc-hp-stats{opacity:.9}
+.pc-hp-controls{display:grid;grid-template-columns:repeat(2,auto) 1fr auto repeat(2,auto);align-items:center;gap:8px}
+.pc-hp-controls input{background:#0e1a3a;color:#e6ebff;border:1px solid rgba(126,166,255,.25);border-radius:10px;padding:10px 12px;width:100%}
+.pc-hp-max{opacity:.8}
+.pc-note{opacity:.7;font-size:12px}
+
+.btn{padding:10px 12px;border-radius:10px;border:1px solid rgba(126,166,255,.22);background:#17254a;color:#e6ebff;cursor:pointer}
+.btn:hover{background:#213463}
+
+.pc-queue{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0}
+.pc-queue-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:12px;border:1px solid rgba(126,166,255,.12);background:rgba(15,26,52,.6)}
+.pc-queue-item.is-active{border-color:#49d68a;background:rgba(30, 80, 60, .45);box-shadow:0 0 0 1px rgba(73,214,138,.25)}
+.pc-queue-item.is-active .pc-initiative-badge{background:rgba(73,214,138,.28);color:#eafff5}
+.pc-queue-item.is-me{outline:1px dashed rgba(121,168,255,.35)}
+.pc-queue-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.pc-initiative-badge{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:rgba(121,168,255,.18);color:#e6f0ff;font-weight:700}
+.pc-queue-info{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.pc-queue-name{font-weight:700}.pc-queue-name i{margin-right:8px;color:#cfe0ff}.pc-type{font-size:12px;opacity:.85}
+.pc-queue-hp{display:flex;align-items:center;gap:8px;width:100%}
+.pc-queue-hp .pc-bar{flex:1;min-width:120px}
+.pc-queue-hp span{font-size:12px;opacity:.9;white-space:nowrap}
+.pc-queue-right{flex-shrink:0;display:flex;align-items:center}
+
+/* HP state text when HP is hidden */
+.pc-hp-state{padding:4px 10px;border-radius:999px;border:1px solid transparent;font-size:12px;letter-spacing:.04em;white-space:nowrap}
+.pc-hp-state.ok{background:rgba(73,214,138,.18);border-color:rgba(73,214,138,.35);color:#dffff0}
+.pc-hp-state.mid{background:rgba(255,216,91,.16);border-color:rgba(255,216,91,.35);color:#fff7d1}
+.pc-hp-state.bad{background:rgba(255,59,59,.14);border-color:rgba(255,59,59,.35);color:#ffe1e1}
+.pc-hp-state.unknown{background:rgba(180,190,220,.12);border-color:rgba(180,190,220,.25);color:#e6ebff}
+.pc-tag{padding:6px 10px;border-radius:999px;border:1px solid rgba(126,166,255,.22);background:rgba(121,168,255,.12);font-size:12px}
+
+@media (max-width: 980px){
+  .pc-main{grid-template-columns:1fr}
+}
+/* --- Стили для КД в списке игрока --- */
+.pc-queue-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pc-queue-name {
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px; /* Заменяет margin-right у иконки */
+}
+.pc-queue-name i {
+  margin-right: 0; 
+}
+.pc-queue-ac {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: .9;
+  background: rgba(121, 168, 255, .1);
+  border: 1px solid rgba(121, 168, 255, .2);
+  border-radius: 6px;
+  padding: 2px 6px;
+  width: fit-content;
+}
+.pc-queue-ac i {
+  color: #a0c3ff;
+  font-size: 10px;
+}
+/* --- Конец стилей КД --- */
+
+/* --- Стили для Состояний и Эффектов (Игрок) --- */
+.pc-participant-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Используем .pc-tag и добавляем модификаторы */
+.pc-tag.is-condition {
+  background: rgba(255, 159, 64, 0.2);
+  border-color: rgba(255, 159, 64, 0.4);
+  color: #ffca8a;
+}
+.pc-tag.is-effect {
+  background: rgba(255, 87, 95, 0.2);
+  border-color: rgba(255, 87, 95, 0.4);
+  color: #ffb8bc;
+}
+/* --- Конец стилей --- */

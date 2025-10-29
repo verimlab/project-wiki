@@ -1,0 +1,114 @@
+.ge-root{min-height:100vh;background:radial-gradient(circle at 10% 20%, rgba(122,157,255,.12), transparent 35%),radial-gradient(circle at 80% 90%, rgba(196,148,255,.12), transparent 40%),linear-gradient(165deg,#050916 0%,#0a1224 50%,#101834 100%);color:#e6ebff;padding:48px 32px;font-family:'Montserrat','Inter',system-ui,-apple-system,'Segoe UI',sans-serif;display:flex;flex-direction:column;gap:28px}
+.ge-header{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.ge-header h1{margin:4px 0;font-size:40px;letter-spacing:.08em;font-family:'Cinzel Decorative',serif}
+.ge-kicker{letter-spacing:.3em;text-transform:uppercase;font-size:12px;color:rgba(255,255,255,.6)}
+.ge-sub{color:rgba(220,230,255,.75);max-width:520px}
+.ge-header-actions{display:flex;gap:12px;align-items:center}
+.ge-ghost-btn,.ge-primary-btn{border-radius:14px;padding:10px 16px;font-weight:600;letter-spacing:.04em;border:1px solid transparent;display:inline-flex;gap:8px;align-items:center;cursor:pointer;background:transparent;color:#e6ebff}
+.ge-ghost-btn{border-color:rgba(120,160,255,.3);background:rgba(20,30,58,.5)}
+.ge-ghost-btn:hover{border-color:rgba(120,160,255,.6)}
+.ge-primary-btn{background:linear-gradient(135deg,#7b6dff,#2bb8ff);border:none;color:#050914}
+.ge-primary-btn:hover{box-shadow:0 10px 24px rgba(43,184,255,.35)}
+
+.ge-layout{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr) minmax(260px,320px);gap:24px;min-height:70vh}
+
+.ge-sidebar,.ge-editor,.ge-preview{background:rgba(8,14,30,.75);border:1px solid rgba(126,166,255,.2);border-radius:20px;padding:18px;box-shadow:0 16px 32px rgba(4,6,18,.55)}
+.ge-section-tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.ge-section-pill{flex:1 1 45%;min-width:120px;padding:10px 12px;border-radius:12px;border:1px solid rgba(120,160,255,.25);background:rgba(16,26,48,.6);color:#e6ebff;display:flex;gap:8px;align-items:center;justify-content:flex-start;cursor:pointer}
+.ge-section-pill.is-active{border-color:#7f8dff;background:rgba(127,141,255,.22)}
+.ge-section-pill i{color:#96adff}
+.ge-search{position:relative;margin-bottom:14px}
+.ge-search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4)}
+.ge-search input{width:100%;padding:10px 12px 10px 36px;border-radius:12px;border:1px solid rgba(120,160,255,.2);background:rgba(7,12,24,.8);color:#f7f8ff}
+
+.ge-article-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 320px);overflow:auto}
+.ge-article-list li{display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(120,160,255,.16);border-radius:14px;padding:10px;background:rgba(14,22,42,.65)}
+.ge-article-list li.is-active{border-color:#82aaff;box-shadow:0 0 0 1px rgba(130,170,255,.35)}
+.ge-article-list button{all:unset;cursor:pointer;display:flex;gap:12px;align-items:center;color:#e6ebff}
+.ge-article-list .dot{width:12px;height:12px;border-radius:50%}
+.ge-article-actions{display:flex;gap:6px}
+.ge-article-actions button{all:unset;cursor:pointer;color:rgba(255,255,255,.6)}
+.ge-empty{opacity:.7;text-align:center;margin:16px 0}
+
+.ge-editor-card{display:flex;flex-direction:column;gap:14px;height:100%}
+.ge-meta-row{display:flex;gap:12px;flex-wrap:wrap}
+.ge-meta-row label{flex:1;display:flex;flex-direction:column;gap:6px;font-size:13px;color:rgba(220,230,255,.8)}
+
+/* ИЗМЕНЕНО: Добавлен .ge-meta-row select и font-family/font-size */
+.ge-meta-row input, .ge-meta-row select {
+  border-radius: 12px;
+  border: 1px solid rgba(120,160,255,.2);
+  padding: 10px 12px;
+  background: rgba(8,14,28,.7);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px; /* Установим явный размер шрифта */
+}
+
+.ge-meta-row input[type=color]{padding:4px;height:46px}
+
+/* ДОБАВЛЕНО: Стили для селекта, чтобы он выглядел как инпут */
+.ge-meta-row select {
+  height: 46px; /* Убедимся, что высота совпадает */
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e6ebff'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 1em;
+  padding-right: 36px;
+}
+
+.ge-full{display:flex;flex-direction:column;gap:6px;font-size:13px;color:rgba(220,230,255,.8)}
+.ge-full input,.ge-full textarea{border-radius:12px;border:1px solid rgba(120,160,255,.2);padding:10px 12px;background:rgba(8,14,28,.7);color:#fff;font-family:inherit}
+.ge-full textarea{min-height:70px;resize:vertical}
+
+/* ДОБАВЛЕНО: Стили для инпутов характеристик */
+.ge-stats-row{display:flex;flex-wrap:wrap;gap:10px;padding:12px;border-radius:14px;background:rgba(8,14,28,.7);border:1px solid rgba(120,160,255,.2)}
+.ge-stats-header{width:100%;margin:0 0 4px;font-size:13px;color:rgba(220,230,255,.8)}
+.ge-stat-label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:rgba(220,230,255,.8);flex:1 1 100px;}
+.ge-stat-label input[type=number]{width:100%;border-radius:10px;border:1px solid rgba(120,160,255,.2);padding:8px 10px;background:rgba(6,10,22,.9);color:#fff}
+
+
+.ge-editor-shell{border-radius:18px;border:1px solid rgba(120,160,255,.24);background:rgba(6,10,22,.9);display:flex;flex-direction:column;overflow:hidden}
+.ge-toolbar{display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:rgba(9,14,30,.95);border-bottom:1px solid rgba(120,160,255,.18)}
+.ge-toolbar button{all:unset;background:rgba(255,255,255,.06);border-radius:10px;padding:6px 10px;cursor:pointer;color:#f3f5ff;font-size:13px;display:flex;align-items:center;gap:6px}
+.ge-toolbar button:hover{background:rgba(130,170,255,.18)}
+.ge-divider{width:1px;height:24px;background:rgba(255,255,255,.12)}
+.ge-editor-area{min-height:320px;padding:18px;outline:none;color:#f8fbff;font-size:15px;line-height:1.7}
+.ge-editor-area h2{font-size:28px;margin:16px 0 8px}
+.ge-editor-area h3{font-size:22px;margin:12px 0 6px}
+.ge-editor-area blockquote{border-left:3px solid rgba(130,170,255,.5);padding-left:12px;color:rgba(255,255,255,.8);font-style:italic}
+.ge-editor-area pre{background:rgba(0,0,0,.4);padding:12px;border-radius:10px;font-family:'Fira Code',monospace;overflow:auto}
+
+.ge-editor-footer{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:rgba(220,230,255,.7)}
+
+.ge-preview{display:flex;flex-direction:column}
+.ge-preview-placeholder{margin:auto;text-align:center;opacity:.7;display:flex;flex-direction:column;gap:8px}
+.ge-preview-card{display:flex;flex-direction:column;gap:12px;overflow:auto;max-height:100%}
+.ge-preview-cover{height:120px;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#050914;font-size:36px;background:rgba(255,255,255,.15)}
+.ge-preview-cover i{filter:drop-shadow(0 6px 12px rgba(0,0,0,.35));}
+.ge-preview-summary{color:rgba(220,230,255,.75)}
+
+/* УБРАНО: .ge-preview-tags, .ge-preview-tags span */
+
+/* ДОБАВЛЕНО: Стили для превью характеристик */
+.ge-preview-stats{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border-radius:12px;background:rgba(7,12,24,.8);border:1px solid rgba(120,160,255,.1)}
+.ge-preview-stat{padding:4px 10px;border-radius:8px;background:rgba(130,170,255,.1);font-size:13px;display:flex;align-items:center;gap:6px}
+.ge-preview-stat i{color:rgba(180,200,255,.8)}
+
+.ge-preview-body{padding:12px;border-radius:14px;background:rgba(7,12,24,.8);border:1px solid rgba(120,160,255,.18)}
+.ge-preview-body blockquote{border-left:3px solid rgba(130,170,255,.6);padding-left:12px;margin:12px 0;color:rgba(230,235,255,.85);font-style:italic;background:rgba(255,255,255,.03);border-radius:8px}
+.ge-preview-body h2,.ge-preview-body h3{margin-top:16px}
+.ge-preview-body p{line-height:1.7}
+
+.ge-placeholder{display:flex;align-items:center;justify-content:center;min-height:300px;color:rgba(255,255,255,.6)}
+
+@media(max-width:1200px){
+  .ge-layout{grid-template-columns:1fr;}
+  .ge-preview{order:3}
+}
+
+@media(max-width:720px){
+  .ge-header{flex-direction:column}
+  .ge-header-actions{flex-wrap:wrap}
+}
