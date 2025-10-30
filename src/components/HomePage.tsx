@@ -10,7 +10,7 @@ import './HomePage.css';
 import { auth, db, googleProvider } from '../firebase';
 import { WEAPONS, ARMOR } from '../data/equipment';
 import type { Article } from '../types/lore';
-
+import { buildDefaultArticles } from '../data/loreDefaults';
 type DiceResultGroup = {
   faces: number;
   rolls: number[];
@@ -186,17 +186,23 @@ const HomePage: React.FC = () => {
     setIsSearchModalOpen(true);
     setSearchResults(null);
 
+    const defaults = buildDefaultArticles();
+
     try {
       const results: SearchResultItem[] = [];
 
       // Search local equipment
       WEAPONS.forEach(w => {
-        if (w.name.toLowerCase().includes(term) || w.description?.toLowerCase().includes(term)) {
+        const nameMatch = w.name?.toLowerCase().includes(term) ?? false;
+        const descMatch = w.description?.toLowerCase().includes(term) ?? false;
+        if (nameMatch || descMatch) {
           results.push({ type: 'Оружие', id: w.id, title: w.name, description: w.description || '', path: `/equipment?id=${w.id}` });
         }
       });
       ARMOR.forEach(a => {
-        if (a.name.toLowerCase().includes(term) || a.description?.toLowerCase().includes(term)) {
+        const nameMatch = a.name?.toLowerCase().includes(term) ?? false;
+        const descMatch = a.description?.toLowerCase().includes(term) ?? false;
+        if (nameMatch || descMatch) {
           results.push({ type: 'Броня', id: a.id, title: a.name, description: a.description || '', path: `/equipment?id=${a.id}` });
         }
       });
@@ -212,20 +218,58 @@ const HomePage: React.FC = () => {
       for (const section of loreSections) {
         const loreQuery = query(collection(db, section.id));
         const loreSnap = await getDocs(loreQuery);
+        
+        const addedIds = new Set<string>();
+
         loreSnap.forEach(doc => {
           const data = doc.data() as Article;
-          if (data.title.toLowerCase().includes(term) || data.summary.toLowerCase().includes(term) || data.content.toLowerCase().includes(term)) {
-            results.push({ type: section.type, id: doc.id, title: data.title, description: data.summary, path: `/lore/${section.id}?article=${doc.id}` });
+          const id = doc.id;
+          addedIds.add(id); 
+
+          const titleMatch = data.title?.toLowerCase().includes(term) ?? false;
+          const summaryMatch = data.summary?.toLowerCase().includes(term) ?? false;
+          const contentMatch = data.content?.toLowerCase().includes(term) ?? false;
+
+          if (titleMatch || summaryMatch || contentMatch) {
+            results.push({ type: section.type, id: id, title: data.title || 'Без названия', description: data.summary || '', path: `/lore/${section.id}?article=${id}` });
+          }
+        });
+
+        const defaultArticles = defaults[section.id] || [];
+        
+        defaultArticles.forEach(data => {
+          if (addedIds.has(data.id)) {
+            return; 
+          }
+
+          const titleMatch = data.title?.toLowerCase().includes(term) ?? false;
+          const summaryMatch = data.summary?.toLowerCase().includes(term) ?? false;
+          const contentMatch = data.content?.toLowerCase().includes(term) ?? false;
+
+          if (titleMatch || summaryMatch || contentMatch) {
+            results.push({
+              type: section.type,
+              id: data.id,
+              title: data.title || 'Без названия',
+              description: data.summary || '',
+              path: `/lore/${section.id}?article=${data.id}`
+            });
           }
         });
       }
 
       // Search Firestore episodes
-      const episodesQuery = query(collection(db, 'campaignEpisodes'), where('title', '>=', term), where('title', '<=', term + '\uf8ff'));
+      const episodesQuery = query(collection(db, 'campaignEpisodes'));
       const episodeSnap = await getDocs(episodesQuery);
       episodeSnap.forEach(doc => {
         const data = doc.data();
-        results.push({ type: 'Эпизод', id: doc.id, title: data.title, description: data.content.substring(0, 150) + '...', path: '/campaign' });
+        
+        const titleMatch = data.title?.toLowerCase().includes(term) ?? false;
+        const contentMatch = data.content?.toLowerCase().includes(term) ?? false;
+
+        if (titleMatch || contentMatch) {
+          results.push({ type: 'Эпизод', id: doc.id, title: data.title || 'Без названия', description: (data.content || '').substring(0, 150) + '...', path: '/campaign' });
+        }
       });
 
       // Search Firestore notes (for current user)
@@ -237,8 +281,12 @@ const HomePage: React.FC = () => {
         const notesSnap = await getDocs(notesQuery);
         notesSnap.forEach(doc => {
           const data = doc.data();
-          if (data.title.toLowerCase().includes(term) || data.content.toLowerCase().includes(term)) {
-            results.push({ type: 'Заметка', id: doc.id, title: data.title, description: data.content.substring(0, 150) + '...', path: `/notes?id=${doc.id}` });
+          
+          const titleMatch = data.title?.toLowerCase().includes(term) ?? false;
+          const contentMatch = data.content?.toLowerCase().includes(term) ?? false;
+
+          if (titleMatch || contentMatch) {
+            results.push({ type: 'Заметка', id: doc.id, title: data.title || 'Без названия', description: (data.content || '').substring(0, 150) + '...', path: `/notes?id=${doc.id}` });
           }
         });
       }
@@ -246,7 +294,7 @@ const HomePage: React.FC = () => {
       setSearchResults({ items: results, query: searchQuery });
     } catch (err) {
       console.error("Search failed:", err);
-      setSearchError('Произошла ошибка во время поиска.');
+      setSearchError(`Произошла ошибка во время поиска: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSearchLoading(false);
     }
@@ -292,6 +340,7 @@ const HomePage: React.FC = () => {
   };
 
   const displayName = user?.displayName ?? user?.email ?? 'Гость';
+  const photoURL = user?.photoURL;
   const roleLabel = role === 'gm' ? 'Гейм-мастер' : role === 'player' ? 'Игрок' : 'Участник';
   const handleMigrationClose = () => setMigrationModalOpen(false);
   const handleMigrationHide = () => {
@@ -321,12 +370,21 @@ const HomePage: React.FC = () => {
               <button type="submit" className="hw-search-button" aria-label="Искать"><i className="fa-solid fa-magnifying-glass" /></button>
             </form>
             <div className="hw-user">
-              {/* ===== НАЧАЛО ИЗМЕНЕНИЯ ===== */}
+              
               <Link to="/profile" className="hw-identity" title="Перейти в профиль">
-                <span className="hw-user-name">{displayName}</span>
-                <span className="hw-role">{roleLabel}</span>
+                {photoURL ? (
+                  <img src={photoURL} alt="Аватар" className="hw-avatar" />
+                ) : (
+                  <span className="hw-avatar-fallback" aria-hidden="true">
+                    <i className="fa-solid fa-user" />
+                  </span>
+                )}
+                <div className="hw-identity-text">
+                  <span className="hw-user-name">{displayName}</span>
+                  <span className="hw-role">{roleLabel}</span>
+                </div>
               </Link>
-              {/* ===== КОНЕЦ ИЗМЕНЕНИЯ ===== */}
+
               <button className="hw-logout" type="button" onClick={handleSignOut}>
                 <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden />
                 <span>Выйти</span>
@@ -411,11 +469,15 @@ const HomePage: React.FC = () => {
               to={sectorRoutes[s.id] ?? `#${s.id}`}
               aria-label={s.label}
             >
-              <span className="hw-card-icon">
-                <i className={s.iconClass} aria-hidden />
-              </span>
-              <span className="hw-card-title">{s.label}</span>
-                            <span className="hw-card-cta">
+              {/* ===== НАЧАЛО ИЗМЕНЕНИЙ ===== */}
+              <div className="hw-card-header">
+                <span className="hw-card-icon">
+                  <i className={s.iconClass} aria-hidden />
+                </span>
+                <span className="hw-card-title">{s.label}</span>
+              </div>
+              {/* ===== КОНЕЦ ИЗМЕНЕНИЙ ===== */}
+              <span className="hw-card-cta">
                 Перейти <i className="fa-solid fa-arrow-right" aria-hidden />
               </span>
             </Link>
