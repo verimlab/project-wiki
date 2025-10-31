@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './GmHubPage.css';
 
+
 const GmHubPage: React.FC = () => {
   return (
     <div className="gm-hub-root">

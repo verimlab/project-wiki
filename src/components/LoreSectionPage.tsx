@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useRole } from '../hooks/useRole';
-import { useLoreArticles } from '../hooks/useLoreArticles';
-// Article, SectionId - типы теперь неявно включают baseStats, ac, attacks
-import type { Article, SectionId } from '../types/lore';
+import { fetchArticles } from '../api/lore'; 
+import type { Article, ArticlesMap, SectionId } from '../types/lore';
 import { SECTION_BY_ID } from '../constants/loreSections';
 import { buildDefaultArticles } from '../data/loreDefaults';
 import './LoreSectionPage.css';
 
-// Определение характеристик и иконок
 const STATS_MAP = [
   { key: 'str', label: 'Сила', icon: 'fa-solid fa-hand-fist' },
   { key: 'agi', label: 'Ловкость', icon: 'fa-solid fa-person-running' },
@@ -22,15 +20,37 @@ const STATS_MAP = [
 const LoreSectionPage: React.FC = () => {
   const params = useParams<{ sectionId?: SectionId }>();
   const defaults = useMemo(() => buildDefaultArticles(), []);
-  const { articles, loading } = useLoreArticles(defaults);
   const { role } = useRole();
+  const [articles, setArticles] = useState<ArticlesMap>(defaults);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const sectionId: SectionId = params.sectionId && SECTION_BY_ID[params.sectionId as SectionId]
     ? (params.sectionId as SectionId)
     : 'characters';
   const meta = SECTION_BY_ID[sectionId];
 
-  const list = (articles[sectionId] ?? defaults[sectionId]) as Article[];
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const cloudData = await fetchArticles();
+        setArticles(cloudData);
+      } catch (err) {
+        console.error('❌ Ошибка загрузки данных:', err);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    
+    loadInitialData();
+  }, []);
+
+  // [ИСПРАВЛЕНО] ✅ Добавлена сортировка по алфавиту
+  const list = useMemo(() => {
+    const rawList = (articles[sectionId] ?? []) as Article[];
+    // Сортируем копию массива по `title`
+    return rawList.slice().sort((a, b) => a.title.localeCompare(b.title, 'ru'));
+  }, [articles, sectionId]); // 👈 `list` будет пересчитан только при изменении
+  
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
 
@@ -39,6 +59,8 @@ const LoreSectionPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!isLoaded) return;
+    
     if (!expandedId) {
       const target = searchParams.get('article');
       if (target && list.some((item) => item.id === target)) {
@@ -47,10 +69,11 @@ const LoreSectionPage: React.FC = () => {
       }
     }
     if (!expandedId) return;
+    // [ИСПРАВЛЕНО] ❗️ Проверяем, есть ли `expandedId` в *отсортированном* `list`
     if (!list.some((item) => item.id === expandedId)) {
       setExpandedId(list[0]?.id ?? null);
     }
-  }, [list, expandedId, searchParams]);
+  }, [list, expandedId, searchParams, isLoaded]);
 
   return (
     <div className="lore-root">
@@ -69,7 +92,7 @@ const LoreSectionPage: React.FC = () => {
       </header>
 
       <div className="lore-grid">
-        {list.map((article) => {
+        {list.map((article) => { // 👈 list теперь отсортирован
           const expanded = expandedId === article.id;
           return (
             <div key={article.id} className={`lore-card ${expanded ? 'is-expanded' : ''}`}>
@@ -82,7 +105,6 @@ const LoreSectionPage: React.FC = () => {
                   <div className="lore-card-title-row">
                     <strong>{article.title}</strong>
                     
-                    {/* Статы для Рас */}
                     {sectionId === 'races' && (
                       <div className="lore-stats-display">
                         {STATS_MAP.map(stat => (
@@ -93,7 +115,6 @@ const LoreSectionPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* ДОБАВЛЕНО: Статы для Существ (КД/Атаки) */}
                     {sectionId === 'creatures' && (
                       <div className="lore-stats-display">
                         <span className="lore-stat" title="КД (Класс Доспеха)">
@@ -128,10 +149,11 @@ const LoreSectionPage: React.FC = () => {
             </div>
           );
         })}
+        
         {list.length === 0 && (
           <div className="lore-placeholder" style={{ gridColumn: '1 / -1' }}>
             <i className="fa-solid fa-wand-magic-sparkles" />
-            <p>{loading ? 'Загружаем статьи...' : 'Статей пока нет. Создайте их в редакторе.'}</p>
+            <p>{!isLoaded ? 'Загружаем статьи...' : 'Статей пока нет. Создайте их в редакторе.'}</p>
           </div>
         )}
       </div>

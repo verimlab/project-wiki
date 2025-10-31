@@ -1,16 +1,19 @@
-﻿﻿// src/components/HomePage.tsx
+﻿// src/components/HomePage.tsx
 
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { User } from 'firebase/auth';
-import { getIdTokenResult, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+// ↓ Убрал 'signOut' отсюда
+import { getIdTokenResult, onAuthStateChanged, signInWithPopup } from 'firebase/auth'; 
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import './HomePage.css';
 import { auth, db, googleProvider } from '../firebase';
 import { WEAPONS, ARMOR } from '../data/equipment';
 import type { Article } from '../types/lore';
 import { buildDefaultArticles } from '../data/loreDefaults';
+
+
 type DiceResultGroup = {
   faces: number;
   rolls: number[];
@@ -27,6 +30,7 @@ const sectors: Array<{ id: string; label: string; iconClass: string; restrictedT
   { id: 'items', label: 'Предметы', iconClass: 'fa-solid fa-box-open' },
   { id: 'notes', label: 'Заметки', iconClass: 'fa-regular fa-note-sticky' },
   { id: 'gazette', label: 'Газета Кара\'нокта', iconClass: 'fa-regular fa-newspaper' },
+  { id: 'rules', label: 'Правила', iconClass: 'fa-solid fa-scale-balanced' },
 ];
 
 type SearchResultItem = {
@@ -62,7 +66,10 @@ const HomePage: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  
   const [role, setRole] = useState<'gm' | 'player' | null>(null);
   const [isMigrationModalOpen, setMigrationModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -70,115 +77,7 @@ const HomePage: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const suppressionFlag = window.localStorage.getItem(MIGRATION_MODAL_KEY);
-    if (suppressionFlag !== 'hidden') {
-      setMigrationModalOpen(true);
-    }
-    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
-      setUser(nextUser);
-      if (!nextUser) {
-        setRole(null);
-        return;
-      }
-
-      const resolveRole = async () => {
-        try {
-          const tokenResult = await getIdTokenResult(nextUser, true);
-          const claimRole = tokenResult.claims.role;
-          if (claimRole === 'gm' || claimRole === 'player') {
-            return claimRole as 'gm' | 'player';
-          }
-
-          const userDoc = await getDoc(doc(db, 'users', nextUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data() as { role?: unknown };
-            if (data.role === 'gm' || data.role === 'player') {
-              return data.role;
-            }
-          }
-        } catch (tokenError) {
-          console.error(tokenError);
-        }
-        return 'player' as const;
-      };
-
-      const resolved = await resolveRole();
-      setRole(resolved);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const total = useMemo(() => {
-    if (!results) return null;
-    return results.reduce((sum, group) => sum + group.rolls.reduce((acc, roll) => acc + roll, 0), 0);
-  }, [results]);
-
-  const selectedDiceCount = useMemo(
-    () => Object.values(diceConfig).reduce((acc, value) => acc + value, 0),
-    [diceConfig],
-  );
-
-  const sectorRoutes: Record<string, string> = {
-    gm: '/gm-hub',
-    campaign: '/campaign',
-    equipment: '/equipment',
-    notes: '/notes',
-    chars: '/lore/characters',
-    races: '/lore/races',
-    worlds: '/lore/worlds',
-    creatures: '/lore/creatures',
-    items: '/gm-items',
-    gazette: '/gazette', 
-  };
-
-  const openDice = () => {
-    setIsDiceOpen(true);
-    setResults(null);
-    setError(null);
-  };
-
-  const closeDice = () => {
-    setIsDiceOpen(false);
-  };
-
-  const adjustDie = (faces: number, delta: number) => {
-    setDiceConfig((prev) => {
-      const current = prev[faces] ?? 0;
-      const nextCount = Math.min(30, Math.max(0, current + delta));
-      if (nextCount === current) {
-        return prev;
-      }
-      return { ...prev, [faces]: nextCount };
-    });
-    setError(null);
-  };
-
-  const handleRoll = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const groups = diceOptions
-      .filter((faces) => (diceConfig[faces] ?? 0) > 0)
-      .map((faces) => ({
-        faces,
-        rolls: Array.from({ length: diceConfig[faces] ?? 0 }, () => Math.floor(Math.random() * faces) + 1),
-      }));
-
-    if (groups.length === 0) {
-      setError('Добавьте хотя бы один куб, чтобы сделать бросок.');
-      setResults(null);
-      return;
-    }
-
-    setError(null);
-    setResults(groups);
-  };
-
-  const handleSearchSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const term = searchQuery.trim().toLowerCase();
+  const performSearch = async (term: string) => {
     if (!term) return;
 
     setSearchLoading(true);
@@ -300,15 +199,130 @@ const HomePage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const initialSearchTerm = searchParams.get('search');
+    if (initialSearchTerm) {
+      setSearchQuery(initialSearchTerm);
+      performSearch(initialSearchTerm.toLowerCase());
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const suppressionFlag = window.localStorage.getItem(MIGRATION_MODAL_KEY);
+    if (suppressionFlag !== 'hidden') {
+      setMigrationModalOpen(true);
+    }
+    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
+      setUser(nextUser);
+      if (!nextUser) {
+        setRole(null);
+        return;
+      }
+
+      const resolveRole = async () => {
+        try {
+          const tokenResult = await getIdTokenResult(nextUser, true);
+          const claimRole = tokenResult.claims.role;
+          if (claimRole === 'gm' || claimRole === 'player') {
+            return claimRole as 'gm' | 'player';
+          }
+
+          const userDoc = await getDoc(doc(db, 'users', nextUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data() as { role?: unknown };
+            if (data.role === 'gm' || data.role === 'player') {
+              return data.role;
+            }
+          }
+        } catch (tokenError) {
+          console.error(tokenError);
+        }
+        return 'player' as const;
+      };
+
+      const resolved = await resolveRole();
+      setRole(resolved);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const total = useMemo(() => {
+    if (!results) return null;
+    return results.reduce((sum, group) => sum + group.rolls.reduce((acc, roll) => acc + roll, 0), 0);
+  }, [results]);
+
+  const selectedDiceCount = useMemo(
+    () => Object.values(diceConfig).reduce((acc, value) => acc + value, 0),
+    [diceConfig],
+  );
+
+  const sectorRoutes: Record<string, string> = {
+    gm: '/gm-hub',
+    campaign: '/campaign',
+    equipment: '/equipment',
+    notes: '/notes',
+    chars: '/lore/characters',
+    races: '/lore/races',
+    worlds: '/lore/worlds',
+    creatures: '/lore/creatures',
+    items: '/gm-items',
+    gazette: '/gazette', 
+    rules: '/rules',
+  };
+
+  const openDice = () => {
+    setIsDiceOpen(true);
+    setResults(null);
+    setError(null);
+  };
+
+  const closeDice = () => {
+    setIsDiceOpen(false);
+  };
+
+  const adjustDie = (faces: number, delta: number) => {
+    setDiceConfig((prev) => {
+      const current = prev[faces] ?? 0;
+      const nextCount = Math.min(30, Math.max(0, current + delta));
+      if (nextCount === current) {
+        return prev;
+      }
+      return { ...prev, [faces]: nextCount };
+    });
+    setError(null);
+  };
+
+  const handleRoll = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const groups = diceOptions
+      .filter((faces) => (diceConfig[faces] ?? 0) > 0)
+      .map((faces) => ({
+        faces,
+        rolls: Array.from({ length: diceConfig[faces] ?? 0 }, () => Math.floor(Math.random() * faces) + 1),
+      }));
+
+    if (groups.length === 0) {
+      setError('Добавьте хотя бы один куб, чтобы сделать бросок.');
+      setResults(null);
+      return;
+    }
+
+    setError(null);
+    setResults(groups);
+  };
+
+  // ↓↓ ФУНКЦИЯ 'handleSearchSubmit' УДАЛЕНА ОТСЮДА ↓↓
+
   const closeSearchModal = () => {
     setIsSearchModalOpen(false);
     setSearchResults(null);
   };
 
-  const openAuthModal = () => {
-    setIsAuthModalOpen(true);
-    setAuthError(null);
-  };
+  // ↓↓ ФУНКЦИЯ 'openAuthModal' УДАЛЕНА ОТСЮДА ↓↓
 
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
@@ -330,18 +344,6 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setRole(null);
-    } catch (signOutError) {
-      console.error(signOutError);
-    }
-  };
-
-  const displayName = user?.displayName ?? user?.email ?? 'Гость';
-  const photoURL = user?.photoURL;
-  const roleLabel = role === 'gm' ? 'Гейм-мастер' : role === 'player' ? 'Игрок' : 'Участник';
   const handleMigrationClose = () => setMigrationModalOpen(false);
   const handleMigrationHide = () => {
     if (typeof window !== 'undefined') {
@@ -352,64 +354,6 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="hw-root">
-      <header className="hw-topbar">
-        <div className="hw-brand">
-          <span className="hw-brand-icon" aria-hidden><i className="fa-regular fa-gem" /></span>
-          <span>Project Wiki</span>
-        </div>
-        {user ? (
-          <>
-            <form className="hw-search-form" onSubmit={handleSearchSubmit}>
-              <input
-                type="text"
-                placeholder="Поиск..."
-                className="hw-search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button type="submit" className="hw-search-button" aria-label="Искать"><i className="fa-solid fa-magnifying-glass" /></button>
-            </form>
-            <div className="hw-user">
-              
-              <Link to="/profile" className="hw-identity" title="Перейти в профиль">
-                {photoURL ? (
-                  <img src={photoURL} alt="Аватар" className="hw-avatar" />
-                ) : (
-                  <span className="hw-avatar-fallback" aria-hidden="true">
-                    <i className="fa-solid fa-user" />
-                  </span>
-                )}
-                <div className="hw-identity-text">
-                  <span className="hw-user-name">{displayName}</span>
-                  <span className="hw-role">{roleLabel}</span>
-                </div>
-              </Link>
-
-              <button className="hw-logout" type="button" onClick={handleSignOut}>
-                <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden />
-                <span>Выйти</span>
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <form className="hw-search-form" onSubmit={handleSearchSubmit}>
-              <input
-                type="text"
-                placeholder="Поиск..."
-                className="hw-search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button type="submit" className="hw-search-button" aria-label="Искать"><i className="fa-solid fa-magnifying-glass" /></button>
-            </form>
-            <button className="hw-login" type="button" onClick={openAuthModal}>
-              <i className="fa-solid fa-user-astronaut" aria-hidden />
-              <span>Войти</span> 
-          </button>
-          </>
-        )}
-      </header>
 
       {isSearchModalOpen && (
         <div className="hw-modal-backdrop" role="presentation" onClick={closeSearchModal}>
@@ -469,14 +413,12 @@ const HomePage: React.FC = () => {
               to={sectorRoutes[s.id] ?? `#${s.id}`}
               aria-label={s.label}
             >
-              {/* ===== НАЧАЛО ИЗМЕНЕНИЙ ===== */}
               <div className="hw-card-header">
                 <span className="hw-card-icon">
                   <i className={s.iconClass} aria-hidden />
                 </span>
                 <span className="hw-card-title">{s.label}</span>
               </div>
-              {/* ===== КОНЕЦ ИЗМЕНЕНИЙ ===== */}
               <span className="hw-card-cta">
                 Перейти <i className="fa-solid fa-arrow-right" aria-hidden />
               </span>

@@ -1,13 +1,14 @@
-﻿import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useSkillsCatalog } from '../hooks/useSkillsCatalog';
 import {
   bulkUpsertSkills,
   deleteSkill,
   saveSkillDraft,
+  fetchSkills, 
   skillDraftFromCatalog,
   type SkillEditorDraft as ImportedSkillEditorDraft,
 } from '../api/skills';
+import type { SkillCatalogEntry, SkillBranch } from '../types/sheet'; // 👈 [ИСПРАВЛЕНО] 1. Импортируем SkillBranch
 import './GmSkillsPage.css';
 
 const NEW_ID = '__new';
@@ -25,6 +26,7 @@ type AttackDetails = {
 type SkillEditorDraft = Omit<ImportedSkillEditorDraft, 'order'> & {
   hasAttack: boolean;
   attack: AttackDetails;
+  branches: string[]; // 👈 string[] (для формы)
 };
 
 const emptyAttackFields = (): AttackDetails => ({
@@ -44,6 +46,7 @@ const emptyDraft = (): SkillEditorDraft => ({
   requiredExp: 100,
   keywords: [],
   perks: [],
+  branches: [], // 👈 string[]
   rank: '',
   hasAttack: false,
   attack: emptyAttackFields(),
@@ -55,7 +58,7 @@ const toKeywords = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const toPerks = (value: string) =>
+const toPerks = (value: string) => // 👈 Эта функция подходит и для `branches`
   value
     .split('\n')
     .map((item) => item.trim())
@@ -69,6 +72,9 @@ const mapJsonToDraft = (raw: Record<string, unknown>, fallbackOrder: number): Sk
   requiredExp: typeof raw.requiredExp === 'number' ? raw.requiredExp : undefined,
   keywords: Array.isArray(raw.keywords) ? raw.keywords.map((kw) => String(kw)) : [],
   perks: Array.isArray(raw.perks) ? raw.perks.map((perk) => String(perk)) : [],
+  branches: Array.isArray(raw.branches) 
+              ? (raw.branches as any[]).map(b => String(b.name ?? b)) // 👈 Умная конвертация (предполагаем `.name`)
+              : [], 
   rank: typeof raw.rank === 'string' ? raw.rank : undefined,
   
   hasAttack: typeof raw.hasAttack === 'boolean' ? raw.hasAttack : false,
@@ -94,7 +100,9 @@ const resolveIconClass = (icon?: string) => {
 };
 
 const GmSkillsPage: React.FC = () => {
-  const { catalog, loading } = useSkillsCatalog();
+  const [catalog, setCatalog] = useState<SkillCatalogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<SkillEditorDraft | null>(null);
@@ -103,89 +111,44 @@ const GmSkillsPage: React.FC = () => {
   const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const prevCatalogRef = useRef(catalog);
-
-  // --- НАЧАЛО ИСПРАВЛЕНИЯ ---
-  const applyDraft = useCallback((value: ImportedSkillEditorDraft | null) => {
-    if (value) {
-      // 'value' - это неполный объект из 'catalog'
-      const itemAsLocal = value as SkillEditorDraft; // Кастуем его
-
-      // Мы используем 'setDraft(currentDraft => ...)' чтобы получить доступ
-      // к *текущему* состоянию формы (currentDraft)
-      setDraft(currentDraft => {
-        // Проверяем, загружаем ли мы тот же навык, который уже в редакторе
-        const isReloadingCurrent = currentDraft && currentDraft.id === value.id;
-
-        const finalDraft: SkillEditorDraft = {
-          ...emptyDraft(), // 1. Применяем все дефолты
-          ...value,        // 2. Применяем неполные данные из 'value' (каталога)
-          
-          // 3. САМОЕ ВАЖНОЕ:
-          // Если это перезагрузка (isReloadingCurrent = true),
-          // то берем 'hasAttack' и 'attack' из 'currentDraft' (из состояния),
-          // а *не* из 'value' (из каталога).
-          // Иначе - сбрасываем (т.к. грузим новый навык).
-          hasAttack: isReloadingCurrent
-                        ? currentDraft.hasAttack
-                        : (itemAsLocal.hasAttack ?? false),
-          
-          attack: isReloadingCurrent
-                        ? currentDraft.attack
-                        : (itemAsLocal.attack 
-                            ? { ...emptyAttackFields(), ...itemAsLocal.attack }
-                            : emptyAttackFields()),
-        };
-        
-        // Так как мы внутри 'setDraft', мы должны обновить keywordsValue здесь же.
-        setKeywordsValue((finalDraft.keywords ?? []).join(', '));
-        
-        return finalDraft;
-      });
-      
-    } else {
-      setDraft(null);
-      setKeywordsValue('');
-    }
-  }, [/* Зависимости не нужны, т.к. setDraft/setKeywordsValue стабильны */]);
-  // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const skills = await fetchSkills();
+        setCatalog(skills);
+      } catch (err) {
+        console.error('Failed to fetch skills', err);
+        setToast({ type: 'error', text: 'Ошибка загрузки навыков' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   useEffect(() => {
-    const catalogChanged = prevCatalogRef.current !== catalog;
-    prevCatalogRef.current = catalog;
-
     if (selectedId === NEW_ID) return;
-    if (!catalog.length) {
-      applyDraft(null);
-      return;
-    }
-    if (!selectedId) {
+
+    if (!selectedId && catalog.length > 0) {
       setSelectedId(catalog[0].id);
-      applyDraft(skillDraftFromCatalog(catalog[0]));
       return;
     }
     
     const match = catalog.find((item) => item.id === selectedId);
     
     if (match) {
-      applyDraft(skillDraftFromCatalog(match));
+      const newDraft = skillDraftFromCatalog(match) as SkillEditorDraft;
+      if (!newDraft.branches) newDraft.branches = []; 
+      setDraft(newDraft);
+      setKeywordsValue((newDraft.keywords ?? []).join(', '));
+    } else if (catalog.length > 0) {
+      setSelectedId(catalog[0].id);
     } else {
-      // Не нашли.
-      if (catalogChanged) {
-        // Навык был удален, грузим первый.
-        if (catalog.length > 0) {
-          setSelectedId(catalog[0].id);
-          applyDraft(skillDraftFromCatalog(catalog[0]));
-        } else {
-          applyDraft(null);
-        }
-      } else {
-        // Это только что созданный навык, 'catalog' еще не обновился.
-        // Ничего не делаем, 'draft' в состоянии и так верный.
-        return;
-      }
+      setDraft(null);
+      setKeywordsValue('');
     }
-  }, [catalog, selectedId, applyDraft]);
+  }, [catalog, selectedId]);
 
   useEffect(() => {
     if (!toast) return;
@@ -208,7 +171,6 @@ const GmSkillsPage: React.FC = () => {
   const startCreate = () => {
     const next = emptyDraft();
     setSelectedId(NEW_ID);
-    // Напрямую вызываем 'setDraft', минуя 'applyDraft'
     setDraft(next);
     setKeywordsValue('');
   };
@@ -218,13 +180,19 @@ const GmSkillsPage: React.FC = () => {
       startCreate();
       return;
     }
-    if (selectedId) {
-      const match = catalog.find((item) => item.id === selectedId);
-      applyDraft(match ? skillDraftFromCatalog(match) : null);
-    } else if (catalog[0]) {
-      applyDraft(skillDraftFromCatalog(catalog[0]));
+    
+    const idToReset = selectedId ?? catalog[0]?.id;
+    if (idToReset) {
+      const match = catalog.find((item) => item.id === idToReset);
+      if (match) {
+        const newDraft = skillDraftFromCatalog(match) as SkillEditorDraft;
+        if (!newDraft.branches) newDraft.branches = [];
+        setDraft(newDraft);
+        setKeywordsValue((newDraft.keywords ?? []).join(', '));
+      }
     } else {
-      applyDraft(null);
+      setDraft(null);
+      setKeywordsValue('');
     }
   };
 
@@ -233,9 +201,37 @@ const GmSkillsPage: React.FC = () => {
     setSaving(true);
     try {
       const id = await saveSkillDraft(draft);
-      setDraft((prev) => (prev ? { ...prev, id } : prev));
+      
+      const updatedDraft = { ...draft, id };
+      setDraft(updatedDraft);
+      
+      setCatalog(currentCatalog => {
+        const index = currentCatalog.findIndex(s => s.id === id);
+        
+        // [ИСПРАВЛЕНО] 2. Конвертируем `draft` (string[]) в `catalog` (SkillBranch[])
+        //    Предполагаем, что у SkillBranch есть поле `name`
+        const { branches, ...restOfDraft } = updatedDraft;
+        const updatedSkillAsCatalogEntry: SkillCatalogEntry = {
+          ...restOfDraft,
+          id: id,
+          // Конвертируем string[] в SkillBranch[]
+          branches: Array.isArray(branches) 
+                      ? branches.map(str => ({ name: str } as unknown as SkillBranch)) // 👈 Конвертация
+                      : [],
+        } as unknown as SkillCatalogEntry; // `as unknown` - хак
+        
+        if (index > -1) {
+          const nextCatalog = [...currentCatalog];
+          nextCatalog[index] = updatedSkillAsCatalogEntry;
+          return nextCatalog;
+        } else {
+          return [updatedSkillAsCatalogEntry, ...currentCatalog];
+        }
+      });
+      
       setToast({ type: 'success', text: 'Навык сохранён' });
-      setSelectedId(id);
+      setSelectedId(id); 
+      
     } catch (err) {
       console.error('skill save failed', err);
       setToast({ type: 'error', text: 'Не удалось сохранить навык' });
@@ -249,9 +245,13 @@ const GmSkillsPage: React.FC = () => {
     if (!window.confirm('Удалить этот навык окончательно?')) return;
     try {
       await deleteSkill(draft.id);
+      
+      setCatalog(currentCatalog => currentCatalog.filter(s => s.id !== draft.id));
+      
       setToast({ type: 'success', text: 'Навык удалён' });
       setSelectedId(null);
-      applyDraft(null);
+      setDraft(null);
+      setKeywordsValue('');
     } catch (err)
 {
       console.error('skill delete failed', err);
@@ -268,6 +268,10 @@ const GmSkillsPage: React.FC = () => {
       if (!Array.isArray(raw) || !raw.length) throw new Error('empty payload');
       const drafts = raw.map((entry, idx) => mapJsonToDraft(entry, idx));
       await bulkUpsertSkills(drafts);
+      
+      const skills = await fetchSkills();
+      setCatalog(skills);
+      
       setToast({ type: 'success', text: `Импортировано ${drafts.length} навыков` });
     } catch (err) {
       console.error('skills import failed', err);
@@ -295,7 +299,7 @@ const GmSkillsPage: React.FC = () => {
     updateDraft({ keywords: toKeywords(value) });
   };
 
-  // ... (остальная часть компонента JSX остается без изменений) ...
+  // ... (JSX...)
   return (
     <div className="gs-root">
       <header className="gs-header">
@@ -336,8 +340,7 @@ const GmSkillsPage: React.FC = () => {
                   type="button"
                   className={`gs-list-item ${selectedId === skill.id ? 'is-active' : ''}`}
                   onClick={() => {
-                    setSelectedId(skill.id);
-                    applyDraft(skillDraftFromCatalog(skill));
+                    setSelectedId(skill.id); 
                   }}
                 >
                   <div className="gs-list-icon">
@@ -460,10 +463,16 @@ const GmSkillsPage: React.FC = () => {
                 <input value={keywordsValue} onChange={(e) => handleKeywordsChange(e.target.value)} placeholder="яд, ловкость, алхимия" />
               </label>
 
-              <label>
-                Перки (по одному на строку)
-                <textarea rows={6} value={(draft.perks ?? []).join('\n')} onChange={(e) => updateDraft({ perks: toPerks(e.target.value) })} placeholder="1. Бонус к атакам\n2. Иммунитет к ядам" />
-              </label>
+              <div className="gs-form-grid-half">
+                <label>
+                  Перки (по одному на строку)
+                  <textarea rows={6} value={(draft.perks ?? []).join('\n')} onChange={(e) => updateDraft({ perks: toPerks(e.target.value) })} placeholder="1. Бонус к атакам&#10;2. Иммунитет к ядам" />
+                </label>
+                <label>
+                  Ветки (по одному на строку)
+                  <textarea rows={6} value={(draft.branches ?? []).join('\n')} onChange={(e) => updateDraft({ branches: toPerks(e.target.value) })} placeholder="1. Улучшение Урона&#10;2. Снижение КД" />
+                </label>
+              </div>
 
               <div className="gs-form-actions">
                 {draft.id && (

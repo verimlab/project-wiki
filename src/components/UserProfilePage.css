@@ -2,7 +2,7 @@
 
 /* Центрируем контент профиля */
 .profile-page-main {
-  gap: 40px; /* Уменьшаем отступ */
+  gap: 32px; /* Немного уменьшаем отступ */
 }
 
 .profile-page-title,
@@ -18,14 +18,15 @@
 .profile-section-title {
   font-size: 22px;
   letter-spacing: 0.12em;
+  margin-top: 20px; /* Добавим отступ сверху */
 }
 
 /*
-  Главная карточка профиля.
-  Стили скопированы из .hw-modal для полного соответствия.
+  Карточка профиля.
+  Теперь используется как МОДАЛЬНОЕ ОКНО.
+  Убраны display:flex и gap, т.к. аватар теперь снаружи.
 */
 .profile-card {
-  width: min(700px, 100%);
   background: linear-gradient(
     145deg,
     rgba(15, 26, 52, 0.96),
@@ -34,12 +35,38 @@
   border-radius: 32px;
   border: 1px solid var(--panel-border, rgba(126, 166, 255, 0.28));
   box-shadow: 0 32px 60px rgba(6, 12, 26, 0.55);
-  padding: 32px 36px;
-  display: flex;
-  gap: 32px;
+  padding: 24px 36px 32px 36px;
+  /* display: flex;  <-- УБРАНО */
+  /* gap: 32px;      <-- УБРАНО */
 }
 
-/* Аватар пользователя */
+/* --- НОВЫЕ СТИЛИ: Хэдер профиля (аватар, имя, кнопки) --- */
+.profile-header-new {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px; /* Компактнее */
+  margin-top: 20px;
+  width: 100%;
+}
+
+.profile-text-display {
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  font-size: 16px;
+  color: rgba(220, 230, 255, 0.7);
+  margin: 0;
+}
+
+.profile-header-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+}
+/* --------------------------------------------------- */
+
+
+/* Аватар пользователя (без изменений) */
 .profile-avatar {
   flex-shrink: 0;
   width: 120px;
@@ -65,9 +92,9 @@
   opacity: 0.8;
 }
 
-/* Контейнер для полей ввода */
+/* Контейнер для полей ввода (теперь внутри модалки) */
 .profile-info {
-  flex-grow: 1;
+  /* flex-grow: 1; <-- УБРАНО */
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -79,7 +106,6 @@
   gap: 8px;
 }
 
-/* Стили для лейблов, как в .hw-role */
 .profile-field label {
   font-size: 12px;
   opacity: 0.72;
@@ -87,10 +113,6 @@
   text-transform: uppercase;
 }
 
-/*
-  Стили для инпута.
-  Основаны на .hw-search-input, но более заметные.
-*/
 .profile-input {
   background: var(--accent-soft, rgba(118, 162, 255, 0.1));
   border: 1px solid var(--panel-border, rgba(120, 160, 255, 0.2));
@@ -108,10 +130,6 @@
   background: var(--accent-soft, rgba(118, 162, 255, 0.2));
 }
 
-/*
-  Для полей "только для чтения" (Email, Роль)
-  Стили как у .hw-user-name
-*/
 .profile-text-value {
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -120,28 +138,25 @@
   padding: 12px 0;
 }
 
-/* Контейнер для кнопок */
 .profile-actions {
   display: flex;
   gap: 14px;
-  margin-top: 10px;
+  margin-top: 20px; /* Увеличим отступ */
 }
 
-/* Сообщение об успехе */
 .profile-success {
   margin: 0;
-  color: #79ffb2; /* Яркий зеленый в тему */
+  color: #79ffb2;
   font-size: 14px;
   letter-spacing: 0.05em;
 }
 
-/* Сетка для статистики */
+/* Сетка для статистики (без изменений) */
 .profile-stats-grid {
   width: min(700px, 100%);
   grid-template-columns: repeat(3, 1fr);
 }
 
-/* Карточка статистики */
 .hw-card.is-stat {
   align-items: center;
   text-align: center;
@@ -176,10 +191,7 @@
 
 /* Адаптация для мобильных */
 @media (max-width: 768px) {
-  .profile-card {
-    flex-direction: column;
-    align-items: center;
-  }
+  /* .profile-card (теперь модалка) больше не flex-column */
 }
 
 @media (max-width: 540px) {
@@ -187,19 +199,14 @@
     grid-template-columns: 1fr;
   }
 }
-/* src/components/UserProfilePage.css */
 
-/* ... (здесь твои существующие стили) ... */
-
+/* ... (стили для загрузки аватара без изменений) ... */
 /* --- Стили для загрузки аватара --- */
-
 .profile-avatar {
-  position: relative; /* Нужно для оверлея */
+  position: relative;
   cursor: pointer;
   transition: filter 0.2s ease;
 }
-
-/* Оверлей, который появляется при наведении */
 .profile-avatar-overlay {
   position: absolute;
   inset: 0;
@@ -208,36 +215,55 @@
   place-items: center;
   color: #f5f8ff;
   font-size: 28px;
-  opacity: 0; /* Скрыт по умолчанию */
+  opacity: 0;
   transition: opacity 0.2s ease;
   backdrop-filter: blur(2px);
 }
-
-/* Показываем оверлей при наведении */
 .profile-avatar:hover .profile-avatar-overlay {
   opacity: 1;
 }
-
-/* Состояние загрузки */
 .profile-avatar.is-uploading {
   filter: grayscale(50%) brightness(0.8);
 }
-
 .profile-avatar.is-uploading .profile-avatar-overlay {
-  opacity: 1; /* Показываем оверлей во время загрузки */
-  font-size: 32px; /* Делаем спиннер чуть больше */
+  opacity: 1;
+  font-size: 32px;
   color: var(--accent, #79a8ff);
 }
-
-/* Скрываем иконку карандаша во время загрузки */
 .profile-avatar.is-uploading .fa-pencil {
   display: none;
 }
-
-/* --- Стили для ошибок --- */
 .profile-error {
   margin: 0;
-  color: #ff8b7a; /* Такой же, как в .hw-dice-error */
+  color: #ff8b7a;
   font-size: 14px;
   letter-spacing: 0.05em;
+}
+
+/* --- НОВЫЕ СТИЛИ: Модальное окно --- */
+.profile-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 12, 26, 0.75);
+  backdrop-filter: blur(5px);
+  z-index: 100;
+}
+
+.profile-card.is-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  width: min(600px, 90vw); /* Делаем модалку чуть уже */
+}
+
+.profile-modal-title {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--neon, #f5f8ff);
+  margin: 0 0 24px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--panel-border, rgba(126, 166, 255, 0.28));
 }

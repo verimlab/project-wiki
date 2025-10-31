@@ -1,0 +1,113 @@
+/* src/components/CombatRulePage.css */
+
+.article-main {
+  padding-top: 40px;
+  padding-bottom: 120px;
+  align-items: center;
+}
+
+.article-container {
+  width: min(800px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  padding: 32px 40px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 600px) {
+  .article-container {
+    padding: 24px 20px;
+  }
+}
+
+.article-header {
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+}
+
+.article-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--accent);
+  text-decoration: none;
+  margin-bottom: 16px;
+  transition: filter 0.2s ease;
+}
+
+.article-back-link:hover {
+  filter: brightness(1.2);
+}
+
+.article-header h1 {
+  margin: 0;
+  font-size: clamp(28px, 5vw, 42px);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--neon);
+}
+
+.article-header .article-intro {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+
+.article-content {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.article-content h2 {
+  font-size: 24px;
+  color: var(--neon);
+  letter-spacing: 0.08em;
+  margin-top: 40px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.article-content h3 {
+  font-size: 20px;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.article-content p {
+  margin: 0 0 16px;
+}
+
+.article-content ul,
+.article-content ol {
+  margin: 0 0 16px;
+  padding-left: 24px;
+}
+
+.article-content li {
+  margin-bottom: 8px;
+}
+
+.article-content strong {
+  color: var(--neon);
+  font-weight: 600;
+}
+
+.article-content em {
+  color: var(--accent);
+  font-style: italic;
+}
+
+.article-content code {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+}

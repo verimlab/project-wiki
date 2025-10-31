@@ -4,9 +4,9 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // <-- 1. Импорт Storage
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Link, useNavigate } from 'react-router-dom';
-import { auth, db, storage } from '../firebase'; // <-- 2. Импорт storage
+import { auth, db, storage } from '../firebase';
 import './UserProfilePage.css';
 import './HomePage.css';
 
@@ -18,14 +18,16 @@ const UserProfilePage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // --- Новые состояния ---
-  const [isUploading, setIsUploading] = useState(false); // Для аватара
-  const [uploadError, setUploadError] = useState<string | null>(null); // Для аватара
-  const [notesCount, setNotesCount] = useState(0); // Для статистики
-  const [charsCount, setCharsCount] = useState(0); // Для статистики
-  const fileInputRef = useRef<HTMLInputElement>(null); // Для клика по инпуту
-  // -----------------------
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [notesCount, setNotesCount] = useState(0);
+  const [charsCount, setCharsCount] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // ... (весь код useEffect, handleSignOut, handleSaveProfile, joinDate, и т.д. остается без изменений) ...
+  
   // Загрузка данных пользователя
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
@@ -63,13 +65,12 @@ const UserProfilePage: React.FC = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // --- НОВЫЙ useEffect для загрузки статистики ---
+  // useEffect для загрузки статистики
   useEffect(() => {
     if (!user) return;
 
     const fetchStats = async () => {
       try {
-        // 1. Запрос заметок
         const notesQuery = query(
           collection(db, 'playerNotes'),
           where('ownerUid', '==', user.uid)
@@ -77,22 +78,19 @@ const UserProfilePage: React.FC = () => {
         const notesSnap = await getDocs(notesQuery);
         setNotesCount(notesSnap.size);
 
-        // 2. Запрос персонажей (!! ИЗМЕНИ 'playerSheets' если коллекция другая !!)
         const charsQuery = query(
           collection(db, 'characterSheets'),
           where('ownerUid', '==', user.uid)
         );
         const charsSnap = await getDocs(charsQuery);
         setCharsCount(charsSnap.size);
-
       } catch (error) {
-        console.error("Ошибка загрузки статистики:", error);
+        console.error('Ошибка загрузки статистики:', error);
       }
     };
 
     fetchStats();
-  }, [user]); // Запускаем при появлении user
-  // ---------------------------------------------
+  }, [user]);
 
   const roleLabel = useMemo(() => {
     if (role === 'gm') return 'Гейм-мастер';
@@ -109,6 +107,7 @@ const UserProfilePage: React.FC = () => {
     }
   };
 
+  // Эта функция теперь вызывается из модального окна
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -118,11 +117,16 @@ const UserProfilePage: React.FC = () => {
     try {
       await updateProfile(user, { displayName });
       setSuccessMessage('Профиль успешно обновлен!');
+      
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSuccessMessage(null);
+      }, 1500);
+
     } catch (error) {
       console.error('Ошибка обновления профиля:', error);
     } finally {
       setIsLoading(false);
-      setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
 
@@ -134,8 +138,8 @@ const UserProfilePage: React.FC = () => {
       year: 'numeric',
     });
   }, [user]);
-  
-  // --- НОВАЯ ЛОГИКА ДЛЯ ЗАГРУЗКИ АВАТАРА ---
+
+  // Логика аватара
   const handleAvatarClick = () => {
     if (isUploading) return;
     fileInputRef.current?.click();
@@ -148,31 +152,38 @@ const UserProfilePage: React.FC = () => {
     setIsUploading(true);
     setUploadError(null);
 
-    const storageRef = ref(storage, `avatars/${user.uid}`); // Путь в Storage
+    const storageRef = ref(storage, `avatars/${user.uid}`);
 
     try {
-      // 1. Загружаем файл
       const snapshot = await uploadBytes(storageRef, file);
-      // 2. Получаем URL
       const downloadURL = await getDownloadURL(snapshot.ref);
-      // 3. Обновляем профиль Firebase Auth
       await updateProfile(user, { photoURL: downloadURL });
-      
-      // 4. Обновляем состояние user локально для немедленного отображения
-      setUser({ ...user, photoURL: downloadURL }); 
-
+      setUser({ ...user, photoURL: downloadURL });
     } catch (error) {
-      console.error("Ошибка загрузки аватара:", error);
+      console.error('Ошибка загрузки аватара:', error);
       setUploadError('Не удалось загрузить файл. Попробуйте снова.');
     } finally {
       setIsUploading(false);
-      // Сбрасываем инпут, чтобы можно было загрузить тот же файл
       if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        fileInputRef.current.value = '';
       }
     }
   };
-  // -----------------------------------------
+  
+  const handleCloseModal = () => {
+    if (isLoading) return;
+    setIsModalOpen(false);
+    setSuccessMessage(null);
+    setUploadError(null);
+    setDisplayName(user?.displayName || ''); 
+  };
+  
+  useEffect(() => {
+    if (isModalOpen && user) {
+      setDisplayName(user.displayName || '');
+    }
+  }, [isModalOpen, user]);
+
 
   if (!user) {
     return null;
@@ -180,31 +191,24 @@ const UserProfilePage: React.FC = () => {
 
   return (
     <div className="hw-root">
+      
+      {/* --- ИЗМЕНЕННЫЙ ХЭДЕР --- */}
       <header className="hw-topbar">
         <Link className="hw-brand" to="/">
           <span className="hw-brand-icon" aria-hidden><i className="fa-regular fa-gem" /></span>
           <span>Project Wiki</span>
         </Link>
         <div className="hw-search-form" style={{ visibility: 'hidden' }} />
-        <div className="hw-user">
-          <Link to="/profile" className="hw-identity" title="Перейти в профиль">
-            <span className="hw-user-name">{user.displayName}</span>
-            <span className="hw-role">{roleLabel}</span>
-          </Link>
-          <button className="hw-logout" type="button" onClick={handleSignOut}>
-            <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden />
-            <span>Выйти</span>
-          </button>
-        </div>
+        {/* Блок <div className="hw-user">...</div> 
+          БЫЛ УДАЛЕН ОТСЮДА 
+        */}
       </header>
 
+      {/* --- ОСНОВНАЯ ЧАСТЬ (без изменений) --- */}
       <main className="hw-main profile-page-main">
-        <h1 className="profile-page-title">Профиль пользователя</h1>
-
-        <form className="profile-card" onSubmit={handleSaveProfile}>
-          
-          {/* --- ОБНОВЛЕННЫЙ БЛОК АВАТАРА --- */}
-          <div 
+        
+        <section className="profile-header-new">
+          <div
             className={`profile-avatar ${isUploading ? 'is-uploading' : ''}`}
             title="Нажмите, чтобы изменить аватар"
             onClick={handleAvatarClick}
@@ -222,7 +226,6 @@ const UserProfilePage: React.FC = () => {
               )}
             </div>
           </div>
-          {/* Скрытый input для выбора файла */}
           <input
             type="file"
             ref={fileInputRef}
@@ -230,52 +233,32 @@ const UserProfilePage: React.FC = () => {
             style={{ display: 'none' }}
             accept="image/png, image/jpeg, image/gif"
           />
-          {/* ---------------------------------- */}
+          
+          <h1 className="profile-page-title">{user.displayName}</h1>
+          <p className="profile-text-display">{user.email}</p>
+          <p className="profile-text-display">{roleLabel}</p>
+          
+          {uploadError && <p className="profile-error">{uploadError}</p>}
 
-          <div className="profile-info">
-            <div className="profile-field">
-              <label htmlFor="displayName">Ваше имя</label>
-              <input
-                id="displayName"
-                type="text"
-                className="profile-input"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="profile-field">
-              <label>Email</label>
-              <p className="profile-text-value">{user.email}</p>
-            </div>
-            <div className="profile-field">
-              <label>Роль</label>
-              <p className="profile-text-value">{roleLabel}</p>
-            </div>
-            <div className="profile-actions">
-              <button
-                className="hw-modal-primary"
-                type="submit"
-                disabled={isLoading || isUploading}
-              >
-                {isLoading ? 'Сохранение...' : 'Сохранить'}
-              </button>
-              <button
-                className="hw-logout"
-                type="button"
-                onClick={handleSignOut}
-              >
-                Выйти
-              </button>
-            </div>
-            {successMessage && <p className="profile-success">{successMessage}</p>}
-            {uploadError && <p className="profile-error">{uploadError}</p>}
+          <div className="profile-header-actions">
+            <button 
+              className="hw-modal-primary" 
+              type="button" 
+              onClick={() => setIsModalOpen(true)}
+            >
+              Редактировать
+            </button>
+            <button
+              className="hw-logout"
+              type="button"
+              onClick={handleSignOut}
+            >
+              Выйти
+            </button>
           </div>
-        </form>
-
-        <h2 className="profile-section-title">Статистика</h2>
+        </section>
         
-        {/* --- ОБНОВЛЕННЫЙ БЛОК СТАТИСТИКИ --- */}
+        <h2 className="profile-section-title">Статистика</h2>
         <section className="hw-grid profile-stats-grid">
           <div className="hw-card is-stat">
             <span className="hw-card-icon">
@@ -284,7 +267,6 @@ const UserProfilePage: React.FC = () => {
             <span className="stat-value">{charsCount}</span>
             <span className="stat-label">Персонажей</span>
           </div>
-
           <div className="hw-card is-stat">
             <span className="hw-card-icon">
               <i className="fa-regular fa-note-sticky" />
@@ -292,7 +274,6 @@ const UserProfilePage: React.FC = () => {
             <span className="stat-value">{notesCount}</span>
             <span className="stat-label">Заметок</span>
           </div>
-
           <div className="hw-card is-stat">
             <span className="hw-card-icon">
               <i className="fa-solid fa-calendar-check" />
@@ -301,7 +282,57 @@ const UserProfilePage: React.FC = () => {
             <span className="stat-label">Дата регистрации</span>
           </div>
         </section>
-        {/* ------------------------------------- */}
+
+        {isModalOpen && (
+          <>
+            <div className="profile-modal-backdrop" onClick={handleCloseModal} />
+            <form className="profile-card is-modal" onSubmit={handleSaveProfile}>
+              
+              <h3 className="profile-modal-title">Редактирование</h3>
+
+              <div className="profile-info">
+                <div className="profile-field">
+                  <label htmlFor="displayName">Ваше имя</label>
+                  <input
+                    id="displayName"
+                    type="text"
+                    className="profile-input"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="profile-field">
+                  <label>Email</label>
+                  <p className="profile-text-value">{user.email}</p>
+                </div>
+                <div className="profile-field">
+                  <label>Роль</label>
+                  <p className="profile-text-value">{roleLabel}</p>
+                </div>
+                
+                <div className="profile-actions">
+                  <button
+                    className="hw-modal-primary"
+                    type="submit"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Сохранение...' : 'Сохранить'}
+                  </button>
+                  <button
+                    className="hw-logout"
+                    type="button"
+                    onClick={handleCloseModal}
+                    disabled={isLoading}
+                  >
+                    Отмена
+                  </button>
+                </div>
+                {successMessage && <p className="profile-success">{successMessage}</p>}
+              </div>
+            </form>
+          </>
+        )}
       </main>
     </div>
   );

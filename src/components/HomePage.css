@@ -24,7 +24,8 @@
   align-items:center;
   justify-content:space-between;
   padding:0 40px;
-  border-bottom:1px solid rgba(255,255,255,0.04);
+  background: #05091a; 
+  border-bottom: 1px solid rgba(126, 166, 255, 0.2); 
   backdrop-filter: blur(10px);
 }
 
@@ -36,6 +37,7 @@
   letter-spacing:0.18em;
   text-transform:uppercase;
   color:#f1f5ff;
+  text-decoration: none;
 }
 
 .hw-brand-icon{
@@ -326,16 +328,16 @@
   bottom:28px;
   display:flex;
   flex-direction:column;
-  gap:14px;
+  gap:12px;
   z-index:70;
 }
 
 .hw-action{
   display:flex;
   align-items:center;
-  gap:16px;
-  padding:18px 30px;
-  border-radius:20px;
+  gap:14px;
+  padding:14px 24px;
+  border-radius:16px;
   border:1px solid transparent;
   cursor:pointer;
   font-weight:600;
@@ -350,9 +352,9 @@
 }
 
 .hw-action-icon{
-  width:46px;
-  height:46px;
-  border-radius:15px;
+  width:42px;
+  height:42px;
+  border-radius:14px;
   display:grid;
   place-items:center;
   background:rgba(255,255,255,0.22);
@@ -361,7 +363,7 @@
 }
 
 .hw-action-icon i{
-  font-size:20px;
+  font-size:18px;
 }
 
 .hw-action-text{
@@ -376,7 +378,7 @@
 }
 
 .hw-action-primary{
-  background:linear-gradient(135deg, #ffb977, #ff7d54);
+  background:linear-gradient(135deg, #4ad8ff, #7f52ff);
   color:#240e07;
 }
 
@@ -803,8 +805,8 @@
 
   .hw-brand{letter-spacing:0.12em;}
   .hw-actions{right:18px; bottom:18px;}
-  .hw-action{padding:16px 24px; gap:14px;}
-  .hw-action-icon{width:42px; height:42px;}
+  .hw-action{padding:12px 20px; gap:12px;}
+  .hw-action-icon{width:38px; height:38px;}
   .hw-action-text{font-size:13px;}
   .hw-dice-grid{grid-template-columns:repeat(1, minmax(0, 1fr));}
   .hw-auth-modal{padding:24px 22px; border-radius:24px;}

@@ -1,0 +1,87 @@
+.gs-overlay {
+  position: fixed;
+  top: 72px; /* Высота твоего TopBar, подбери */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(8, 14, 30, 0.6);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+.gs-container {
+  max-width: 800px;
+  margin: 24px auto;
+  background: rgba(11, 18, 36, 0.95);
+  border: 1px solid rgba(120, 160, 255, 0.2);
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.gs-results-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.gs-result-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #e6ebff;
+  transition: background 0.2s ease;
+}
+
+.gs-result-item:hover {
+  background: rgba(127, 141, 255, 0.15);
+}
+
+.gs-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(130, 170, 255, 0.1);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.gs-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.gs-meta strong {
+  font-size: 1rem;
+}
+
+.gs-meta small {
+  color: rgba(220, 230, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px;
+  color: rgba(220, 230, 255, 0.7);
+}
+
+.gs-empty i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
