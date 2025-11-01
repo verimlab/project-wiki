@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   bulkUpsertSkills,
@@ -8,7 +8,7 @@ import {
   skillDraftFromCatalog,
   type SkillEditorDraft as ImportedSkillEditorDraft,
 } from '../api/skills';
-import type { SkillCatalogEntry, SkillBranch } from '../types/sheet'; // 👈 [ИСПРАВЛЕНО] 1. Импортируем SkillBranch
+import type { SkillCatalogEntry, SkillCategory } from '../types/sheet';
 import './GmSkillsPage.css';
 
 const NEW_ID = '__new';
@@ -23,10 +23,11 @@ type AttackDetails = {
   effect: string;
 };
 
-type SkillEditorDraft = Omit<ImportedSkillEditorDraft, 'order'> & {
+// [ИЗМЕНЕНО] Убрано `branches` из этого типа, т.к. поле ввода удалено
+type SkillEditorDraft = Omit<ImportedSkillEditorDraft, 'order' | 'branches'> & {
   hasAttack: boolean;
   attack: AttackDetails;
-  branches: string[]; // 👈 string[] (для формы)
+  category?: SkillCategory;
 };
 
 const emptyAttackFields = (): AttackDetails => ({
@@ -46,8 +47,8 @@ const emptyDraft = (): SkillEditorDraft => ({
   requiredExp: 100,
   keywords: [],
   perks: [],
-  branches: [], // 👈 string[]
   rank: '',
+  category: 'misc',
   hasAttack: false,
   attack: emptyAttackFields(),
 });
@@ -58,7 +59,7 @@ const toKeywords = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const toPerks = (value: string) => // 👈 Эта функция подходит и для `branches`
+const toPerks = (value: string) => 
   value
     .split('\n')
     .map((item) => item.trim())
@@ -72,10 +73,13 @@ const mapJsonToDraft = (raw: Record<string, unknown>, fallbackOrder: number): Sk
   requiredExp: typeof raw.requiredExp === 'number' ? raw.requiredExp : undefined,
   keywords: Array.isArray(raw.keywords) ? raw.keywords.map((kw) => String(kw)) : [],
   perks: Array.isArray(raw.perks) ? raw.perks.map((perk) => String(perk)) : [],
-  branches: Array.isArray(raw.branches) 
-              ? (raw.branches as any[]).map(b => String(b.name ?? b)) // 👈 Умная конвертация (предполагаем `.name`)
-              : [], 
+  // 'branches' не импортируем, т.к. поле удалено
   rank: typeof raw.rank === 'string' ? raw.rank : undefined,
+  category: ((): SkillCategory | undefined => {
+    const v = typeof (raw as any).category === 'string' ? (raw as any).category : undefined;
+    const allowed: SkillCategory[] = ['proficiency', 'magic', 'passive', 'misc'];
+    return v && (allowed as string[]).includes(v) ? (v as SkillCategory) : undefined;
+  })(),
   
   hasAttack: typeof raw.hasAttack === 'boolean' ? raw.hasAttack : false,
   attack: typeof raw.attack === 'object' && raw.attack !== null ? 
@@ -139,7 +143,11 @@ const GmSkillsPage: React.FC = () => {
     
     if (match) {
       const newDraft = skillDraftFromCatalog(match) as SkillEditorDraft;
-      if (!newDraft.branches) newDraft.branches = []; 
+      
+      // [ИСПРАВЛЕНО] 1. ГЛАВНЫЙ ФИКС
+      // Если `attack` пришел как `undefined`, заменяем его пустым объектом
+      if (!newDraft.attack) newDraft.attack = emptyAttackFields(); 
+      
       setDraft(newDraft);
       setKeywordsValue((newDraft.keywords ?? []).join(', '));
     } else if (catalog.length > 0) {
@@ -186,7 +194,11 @@ const GmSkillsPage: React.FC = () => {
       const match = catalog.find((item) => item.id === idToReset);
       if (match) {
         const newDraft = skillDraftFromCatalog(match) as SkillEditorDraft;
-        if (!newDraft.branches) newDraft.branches = [];
+        
+        // [ИСПРАВЛЕНО] 2. ГЛАВНЫЙ ФИКС (дублируем)
+        // Гарантируем, что `attack` не `undefined`
+        if (!newDraft.attack) newDraft.attack = emptyAttackFields(); 
+        
         setDraft(newDraft);
         setKeywordsValue((newDraft.keywords ?? []).join(', '));
       }
@@ -200,6 +212,8 @@ const GmSkillsPage: React.FC = () => {
     if (!draft) return;
     setSaving(true);
     try {
+      // 'branches' больше не существует в draft, так что saveSkillDraft
+      // должен принимать объект без 'branches'
       const id = await saveSkillDraft(draft);
       
       const updatedDraft = { ...draft, id };
@@ -208,17 +222,12 @@ const GmSkillsPage: React.FC = () => {
       setCatalog(currentCatalog => {
         const index = currentCatalog.findIndex(s => s.id === id);
         
-        // [ИСПРАВЛЕНО] 2. Конвертируем `draft` (string[]) в `catalog` (SkillBranch[])
-        //    Предполагаем, что у SkillBranch есть поле `name`
-        const { branches, ...restOfDraft } = updatedDraft;
+        // [ИЗМЕНЕНО] Убрана логика `branches`
         const updatedSkillAsCatalogEntry: SkillCatalogEntry = {
-          ...restOfDraft,
+          ...updatedDraft,
           id: id,
-          // Конвертируем string[] в SkillBranch[]
-          branches: Array.isArray(branches) 
-                      ? branches.map(str => ({ name: str } as unknown as SkillBranch)) // 👈 Конвертация
-                      : [],
-        } as unknown as SkillCatalogEntry; // `as unknown` - хак
+          branches: [], // Отправляем пустой массив, т.к. поле удалено
+        } as unknown as SkillCatalogEntry; 
         
         if (index > -1) {
           const nextCatalog = [...currentCatalog];
@@ -401,6 +410,15 @@ const GmSkillsPage: React.FC = () => {
                   Icon (FA или Remix)
                   <input value={draft.icon || ''} onChange={(e) => updateDraft({ icon: e.target.value })} placeholder="fa-solid fa-wand-magic-sparkles" />
                 </label>
+                <label>
+                  Категория
+                  <select value={draft.category ?? 'misc'} onChange={(e) => updateDraft({ category: e.target.value as SkillCategory })}>
+                    <option value="proficiency">Владение</option>
+                    <option value="magic">Магия</option>
+                    <option value="passive">Пассивные</option>
+                    <option value="misc">Разное</option>
+                  </select>
+                </label>
               </div>
 
               <label className="gs-form-toggle">
@@ -418,34 +436,39 @@ const GmSkillsPage: React.FC = () => {
                   <div className="gs-form-grid">
                     <label>
                       Урон
-                      <input value={draft.attack.damage} onChange={(e) => updateAttackDraft({ damage: e.target.value })} placeholder="2d8 + МОД" />
+                      {/* [ИСПРАВЛЕНО] 3. ГЛАВНЫЙ ФИКС
+                          Мы используем `draft.attack?.damage` (optional chaining)
+                          на случай, если `draft` еще не обновился,
+                          И `|| ''` на случай, если `damage` - undefined.
+                      */}
+                      <input value={draft.attack?.damage || ''} onChange={(e) => updateAttackDraft({ damage: e.target.value })} placeholder="2d8 + МОД" />
                     </label>
                     <label>
                       Тип урона
-                      <input value={draft.attack.damageType} onChange={(e) => updateAttackDraft({ damageType: e.target.value })} placeholder="огонь, холод, некро..." />
+                      <input value={draft.attack?.damageType || ''} onChange={(e) => updateAttackDraft({ damageType: e.target.value })} placeholder="огонь, холод, некро..." />
                     </label>
                     <label>
                       Дистанция
-                      <input value={draft.attack.range} onChange={(e) => updateAttackDraft({ range: e.target.value })} placeholder="30 футов, касание" />
+                      <input value={draft.attack?.range || ''} onChange={(e) => updateAttackDraft({ range: e.target.value })} placeholder="30 футов, касание" />
                     </label>
                     <label>
                       Спасбросок
-                      <input value={draft.attack.saveType} onChange={(e) => updateAttackDraft({ saveType: e.target.value })} placeholder="ЛОВ, МУД, ВЫН" />
+                      <input value={draft.attack?.saveType || ''} onChange={(e) => updateAttackDraft({ saveType: e.target.value })} placeholder="ЛОВ, МУД, ВЫН" />
                     </label>
                     <label>
                       Время каста
-                      <input value={draft.attack.castingTime} onChange={(e) => updateAttackDraft({ castingTime: e.target.value })} placeholder="1 действие" />
+                      <input value={draft.attack?.castingTime || ''} onChange={(e) => updateAttackDraft({ castingTime: e.target.value })} placeholder="1 действие" />
                     </label>
                     <label>
                       Стоимость маны
-                      <input value={draft.attack.manaCost} onChange={(e) => updateAttackDraft({ manaCost: e.target.value })} placeholder="15 MP" />
+                      <input value={draft.attack?.manaCost || ''} onChange={(e) => updateAttackDraft({ manaCost: e.target.value })} placeholder="15 MP" />
                     </label>
                     </div>
                   <label>
                     Эффект (при успехе/провале спасброска)
                     <textarea 
                       rows={3} 
-                      value={draft.attack.effect} 
+                      value={draft.attack?.effect || ''} 
                       onChange={(e) => updateAttackDraft({ effect: e.target.value })} 
                       placeholder="При провале спасброска, цель ошеломлена на 1 раунд." 
                     />
@@ -463,16 +486,13 @@ const GmSkillsPage: React.FC = () => {
                 <input value={keywordsValue} onChange={(e) => handleKeywordsChange(e.target.value)} placeholder="яд, ловкость, алхимия" />
               </label>
 
-              <div className="gs-form-grid-half">
-                <label>
-                  Перки (по одному на строку)
-                  <textarea rows={6} value={(draft.perks ?? []).join('\n')} onChange={(e) => updateDraft({ perks: toPerks(e.target.value) })} placeholder="1. Бонус к атакам&#10;2. Иммунитет к ядам" />
-                </label>
-                <label>
-                  Ветки (по одному на строку)
-                  <textarea rows={6} value={(draft.branches ?? []).join('\n')} onChange={(e) => updateDraft({ branches: toPerks(e.target.value) })} placeholder="1. Улучшение Урона&#10;2. Снижение КД" />
-                </label>
-              </div>
+              {/* --- [ИЗМЕНЕНО] --- */}
+              {/* Убрана обертка gs-form-grid-half и второе поле (Ветки) */}
+              <label>
+                Перки (по одному на строку)
+                <textarea rows={6} value={(draft.perks ?? []).join('\n')} onChange={(e) => updateDraft({ perks: toPerks(e.target.value) })} placeholder="1. Бонус к атакам&#10;2. Иммунитет к ядам" />
+              </label>
+              {/* --- [КОНЕЦ ИЗМЕНЕНИЯ] --- */}
 
               <div className="gs-form-actions">
                 {draft.id && (

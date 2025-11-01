@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../firebase';
 import './UserProfilePage.css';
 import './HomePage.css';
@@ -192,18 +192,7 @@ const UserProfilePage: React.FC = () => {
   return (
     <div className="hw-root">
       
-      {/* --- ИЗМЕНЕННЫЙ ХЭДЕР --- */}
-      <header className="hw-topbar">
-        <Link className="hw-brand" to="/">
-          <span className="hw-brand-icon" aria-hidden><i className="fa-regular fa-gem" /></span>
-          <span>Project Wiki</span>
-        </Link>
-        <div className="hw-search-form" style={{ visibility: 'hidden' }} />
-        {/* Блок <div className="hw-user">...</div> 
-          БЫЛ УДАЛЕН ОТСЮДА 
-        */}
-      </header>
-
+    
       {/* --- ОСНОВНАЯ ЧАСТЬ (без изменений) --- */}
       <main className="hw-main profile-page-main">
         

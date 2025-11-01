@@ -1,6 +1,8 @@
-/* src/components/CombatRulePage.css */
+
 
 .article-main {
+  display: flex;
+  flex-direction: column;
   padding-top: 40px;
   padding-bottom: 120px;
   align-items: center;
@@ -110,4 +112,11 @@
   padding: 2px 6px;
   border-radius: 6px;
   font-family: 'Space Mono', monospace;
+}
+
+.article-content h2 .fa-solid,
+.article-content h3 .fa-solid {
+  margin-right: 12px;
+  width: 20px; /* Фикс. ширина для лучшего выравнивания */
+  text-align: center;
 }

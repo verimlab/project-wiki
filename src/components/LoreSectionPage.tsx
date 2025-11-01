@@ -1,11 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useRole } from '../hooks/useRole';
 import { fetchArticles } from '../api/lore'; 
-import type { Article, ArticlesMap, SectionId } from '../types/lore';
+// [ИЗМЕНЕНО] Импортируем 'Article' как 'ImportedArticle'
+import type { Article as ImportedArticle, ArticlesMap, SectionId } from '../types/lore';
 import { SECTION_BY_ID } from '../constants/loreSections';
 import { buildDefaultArticles } from '../data/loreDefaults';
 import './LoreSectionPage.css';
+
+// [ИЗМЕНЕНО] Создаем наш локальный тип 'Article', который включает 'category'
+type Article = ImportedArticle & {
+  category?: string;
+};
 
 const STATS_MAP = [
   { key: 'str', label: 'Сила', icon: 'fa-solid fa-hand-fist' },
@@ -44,12 +50,35 @@ const LoreSectionPage: React.FC = () => {
     loadInitialData();
   }, []);
 
-  // [ИСПРАВЛЕНО] ✅ Добавлена сортировка по алфавиту
   const list = useMemo(() => {
-    const rawList = (articles[sectionId] ?? []) as Article[];
+    const rawList = (articles[sectionId] ?? []) as Article[]; // Используем наш новый тип
     // Сортируем копию массива по `title`
     return rawList.slice().sort((a, b) => a.title.localeCompare(b.title, 'ru'));
-  }, [articles, sectionId]); // 👈 `list` будет пересчитан только при изменении
+  }, [articles, sectionId]); 
+  
+  const groupedCreatures = useMemo(() => {
+    if (sectionId !== 'creatures') return null;
+    
+    const groups: Record<string, Article[]> = {};
+    
+    for (const article of list) {
+      // Это поле теперь валидно
+      const category = article.category?.trim() || 'Без категории'; 
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(article);
+    }
+    
+    const categoryNames = Object.keys(groups).sort((a, b) => {
+      if (a === 'Без категории') return 1;
+      if (b === 'Без категории') return -1;
+      return a.localeCompare(b, 'ru');
+    });
+    
+    return { groups, categoryNames };
+
+  }, [list, sectionId]);
   
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
@@ -65,15 +94,80 @@ const LoreSectionPage: React.FC = () => {
       const target = searchParams.get('article');
       if (target && list.some((item) => item.id === target)) {
         setExpandedId(target);
+        setTimeout(() => {
+          const el = document.getElementById('article-' + target);
+          if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
         return;
       }
     }
     if (!expandedId) return;
-    // [ИСПРАВЛЕНО] ❗️ Проверяем, есть ли `expandedId` в *отсортированном* `list`
     if (!list.some((item) => item.id === expandedId)) {
       setExpandedId(list[0]?.id ?? null);
     }
   }, [list, expandedId, searchParams, isLoaded]);
+
+  const renderArticleCard = (article: Article) => {
+    const expanded = expandedId === article.id;
+    const meta = SECTION_BY_ID[sectionId];
+    
+    return (
+      <div key={article.id} id={'article-' + article.id} className={`lore-card ${expanded ? 'is-expanded' : ''}` }>
+        <button type="button" className="lore-card-head" onClick={() => toggleCard(article.id)}>
+          <span className="lore-card-icon" style={{ color: article.coverColor }}>
+            <i className={article.icon || meta.icon} />
+          </span>
+          
+          <div className="lore-card-meta">
+            <div className="lore-card-title-row">
+              <strong>{article.title}</strong>
+              
+              {sectionId === 'races' && (
+                <div className="lore-stats-display">
+                  {STATS_MAP.map(stat => (
+                    <span key={stat.key} className="lore-stat" title={stat.label}>
+                      <i className={stat.icon} /> {article.baseStats?.[stat.key] ?? 0}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {sectionId === 'creatures' && (
+                <div className="lore-stats-display">
+                  <span className="lore-stat" title="КД (Класс Доспеха)">
+                    <i className="fa-solid fa-shield-halved" /> {article.ac || '?'}
+                  </span>
+                  <span className="lore-stat" title="Атаки">
+                    <i className="fa-solid fa-gavel" /> {article.attacks || '...'}
+                  </span>
+                  {/* Мы не показываем категорию здесь, т.к. она будет в заголовке */}
+                </div>
+              )}
+            </div>
+            <small>{article.summary}</small>
+          </div>
+
+          <span className="lore-card-chevron" aria-hidden>
+            <i className={`fa-solid fa-chevron-${expanded ? 'up' : 'down'}`} />
+          </span>
+        </button>
+        {expanded && (
+          <div className="lore-card-body">
+            <div className="lore-card-content" dangerouslySetInnerHTML={{ __html: article.content }} />
+            {role === 'gm' && (
+              <Link
+                to={`/gm-editor?section=${sectionId}&article=${article.id}`}
+                className="lore-edit-btn"
+              >
+                <i className="fa-solid fa-pen-to-square" /> Открыть в редакторе
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <div className="lore-root">
@@ -92,63 +186,16 @@ const LoreSectionPage: React.FC = () => {
       </header>
 
       <div className="lore-grid">
-        {list.map((article) => { // 👈 list теперь отсортирован
-          const expanded = expandedId === article.id;
-          return (
-            <div key={article.id} className={`lore-card ${expanded ? 'is-expanded' : ''}`}>
-              <button type="button" className="lore-card-head" onClick={() => toggleCard(article.id)}>
-                <span className="lore-card-icon" style={{ color: article.coverColor }}>
-                  <i className={article.icon || meta.icon} />
-                </span>
-                
-                <div className="lore-card-meta">
-                  <div className="lore-card-title-row">
-                    <strong>{article.title}</strong>
-                    
-                    {sectionId === 'races' && (
-                      <div className="lore-stats-display">
-                        {STATS_MAP.map(stat => (
-                          <span key={stat.key} className="lore-stat" title={stat.label}>
-                            <i className={stat.icon} /> {article.baseStats?.[stat.key] ?? 0}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {sectionId === 'creatures' && (
-                      <div className="lore-stats-display">
-                        <span className="lore-stat" title="КД (Класс Доспеха)">
-                          <i className="fa-solid fa-shield-halved" /> {article.ac || '?'}
-                        </span>
-                        <span className="lore-stat" title="Атаки">
-                          <i className="fa-solid fa-gavel" /> {article.attacks || '...'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <small>{article.summary}</small>
-                </div>
-
-                <span className="lore-card-chevron" aria-hidden>
-                  <i className={`fa-solid fa-chevron-${expanded ? 'up' : 'down'}`} />
-                </span>
-              </button>
-              {expanded && (
-                <div className="lore-card-body">
-                  <div className="lore-card-content" dangerouslySetInnerHTML={{ __html: article.content }} />
-                  {role === 'gm' && (
-                    <Link
-                      to={`/gm-editor?section=${sectionId}&article=${article.id}`}
-                      className="lore-edit-btn"
-                    >
-                      <i className="fa-solid fa-pen-to-square" /> Открыть в редакторе
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {sectionId === 'creatures' && groupedCreatures ? (
+          groupedCreatures.categoryNames.map(categoryName => (
+            <React.Fragment key={categoryName}>
+              <h2 className="lore-category-heading">{categoryName}</h2>
+              {groupedCreatures.groups[categoryName].map(renderArticleCard)}
+            </React.Fragment>
+          ))
+        ) : (
+          list.map(renderArticleCard)
+        )}
         
         {list.length === 0 && (
           <div className="lore-placeholder" style={{ gridColumn: '1 / -1' }}>

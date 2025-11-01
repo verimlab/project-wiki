@@ -1,7 +1,7 @@
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import type { SkillCatalogEntry } from '../types/sheet';
+import type { SkillCatalogEntry, SkillAttackData, SkillCategory } from '../types/sheet';
 
 const readString = (value: unknown): string | undefined => {
   if (typeof value === 'string' && value.trim().length) {
@@ -19,6 +19,33 @@ const readArray = (value: unknown): string[] => {
   return value
     .map((item) => String(item).trim())
     .filter(Boolean);
+};
+
+const readBool = (value: unknown): boolean | undefined => {
+  return typeof value === 'boolean' ? value : undefined;
+};
+
+const readAttack = (value: unknown): SkillAttackData | undefined => {
+  if (!value || typeof value !== 'object') return undefined;
+  const v = value as Record<string, unknown>;
+  const get = (k: string) => (typeof v[k] === 'string' ? String(v[k]) : '');
+  const candidate: SkillAttackData = {
+    damage: get('damage'),
+    damageType: get('damageType'),
+    range: get('range'),
+    saveType: get('saveType'),
+    castingTime: get('castingTime'),
+    manaCost: get('manaCost'),
+    effect: get('effect'),
+  };
+  const hasAny = Object.values(candidate).some((s) => typeof s === 'string' && s.trim().length > 0);
+  return hasAny ? candidate : undefined;
+};
+
+const readCategory = (value: unknown): SkillCategory | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const allowed: SkillCategory[] = ['proficiency', 'magic', 'passive', 'misc'];
+  return (allowed as string[]).includes(value) ? (value as SkillCategory) : undefined;
 };
 
 const readTimestamp = (value: unknown, fallback: number): number => {
@@ -46,6 +73,9 @@ const mapDocToSkill = (id: string, data: Record<string, unknown>): SkillCatalogE
     createdAt: readTimestamp(data.createdAt, now),
     updatedAt: readTimestamp(data.updatedAt, now),
     branches: [],
+    category: readCategory((data as any).category),
+    hasAttack: readBool((data as any).hasAttack),
+    attack: readAttack((data as any).attack),
   };
 };
 

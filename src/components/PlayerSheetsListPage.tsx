@@ -96,10 +96,20 @@ const PlayerSheetsListPage: React.FC = () => {
                       <i className="fa-solid fa-user-pen" /> {sheet.displayName || sheet.ownerEmail || 'Неизвестный игрок'}
                     </p>
                   </div>
-                  <div className="player-sheet-card__footer">
+                  <div className="player-sheet-card__footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                     <span className="player-sheet-card__updated">
                       {sheet.updatedAt ? `Обновлено: ${sheet.updatedAt.toLocaleDateString()}` : ''}
                     </span>
+                    {/* --- [ИСПРАВЛЕНО] --- */}
+                    <Link 
+                      to={`/character-sheet?uid=${sheet.id}`} 
+                      className="btn btn-secondary" 
+                      onClick={(e) => e.stopPropagation()} 
+                      title="Открыть лист для редактирования как ГМ"
+                    >
+                      <i className="fa-solid fa-pen-to-square" /> Редактировать
+                    </Link>
+                    {/* --- [КОНЕЦ ИСПРАВЛЕНИЯ] --- */}
                   </div>
                 </div>
               ))

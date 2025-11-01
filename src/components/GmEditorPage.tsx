@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { createId } from '../utils/id';
-import type { Article, ArticlesMap, SectionId } from '../types/lore';
+// [ИЗМЕНЕНО] Импортируем 'Article' как 'ImportedArticle'
+import type { Article as ImportedArticle, ArticlesMap, SectionId } from '../types/lore';
 import { LORE_SECTIONS, SECTION_BY_ID } from '../constants/loreSections';
 import { buildDefaultArticles } from '../data/loreDefaults';
 
-// [УДАЛЕНО] ❌ import { useLoreArticles } from '../hooks/useLoreArticles';
-
-// [ИЗМЕНЕНО] ✅ Мы используем `fetchArticles`, который, как ты сказал, работает
 import { deleteArticle as deleteFromFirestore, saveArticle, fetchArticles } from '../api/lore'; 
 import './GmEditorPage.css';
+
+// [ИЗМЕНЕНО] Создаем наш локальный тип 'Article', который включает 'category'
+type Article = ImportedArticle & {
+  category?: string;
+};
 
 const formatDate = (value: number) =>
   new Intl.DateTimeFormat('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }).format(value);
@@ -46,10 +49,6 @@ const getRelationFromColor = (color: string): keyof typeof RELATION_MAP => {
 const GmEditorPage: React.FC = () => {
   const defaults = useMemo(() => buildDefaultArticles(), []);
   
-  // [УДАЛЕНО] ❌ const { articles: remoteArticles } = useLoreArticles(defaults);
-
-  // 1. `articles` - наш ЕДИНСТВЕННЫЙ источник правды.
-  //    Начинаем с пустых `defaults`.
   const [articles, setArticles] = useState<ArticlesMap>(defaults);
   
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,32 +61,26 @@ const GmEditorPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   
-  // 2. [ИЗМЕНЕНО] ✅ Добавляем `useState` для отслеживания *самой первой* загрузки
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // [ИЗМЕНЕНО] ✅ ЭТОТ useEffect ТЕПЕРЬ ЗАГРУЖАЕТ ДАННЫЕ
-  // Мы делаем *в точности* то же самое, что и кнопка "Загрузить из облака",
-  // но только ОДИН РАЗ при загрузке страницы.
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         console.log('🔄 Загрузка данных из Firebase...');
-        const cloudData = await fetchArticles(); // 👈 Вызываем РАБОТАЮЩУЮ функцию
-        setArticles(cloudData);                  // 👈 Заполняем наш главный стейт
+        const cloudData = await fetchArticles(); 
+        setArticles(cloudData);                  
         console.log('✅ Данные успешно загружены');
       } catch (err) {
         console.error('❌ Ошибка загрузки данных:', err);
       } finally {
-        setIsLoaded(true); // 👈 Говорим, что загрузка завершена
+        setIsLoaded(true); 
       }
     };
     
     loadInitialData();
-  }, []); // 👈 Пустой массив = "run once on mount"
+  }, []); 
 
-  // [ИЗМЕНЕНО] ✅ Этот useEffect теперь ждет `isLoaded`
   useEffect(() => {
-    // Ждем, пока `isLoaded` станет true
     if (!isLoaded) return; 
 
     const incomingSection = searchParams.get('section');
@@ -96,7 +89,7 @@ const GmEditorPage: React.FC = () => {
       : 'characters';
     if (resolvedSection !== section) setSection(resolvedSection);
 
-    const list = articles[resolvedSection] ?? [];
+    const list = (articles[resolvedSection] ?? []) as Article[]; // Используем наш новый тип
     const incomingArticle = searchParams.get('article');
     const resolvedArticle = incomingArticle && list.some((item) => item.id === incomingArticle)
       ? incomingArticle
@@ -105,7 +98,7 @@ const GmEditorPage: React.FC = () => {
     if (resolvedArticle !== selectedId) {
       setSelectedId(resolvedArticle);
     }
-  }, [searchParams, articles, section, selectedId, isLoaded]); // 👈 `isLoaded` в зависимостях
+  }, [searchParams, articles, section, selectedId, isLoaded]); 
 
   const syncParams = (nextSection: SectionId, articleId: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -116,7 +109,7 @@ const GmEditorPage: React.FC = () => {
   };
 
   const filteredList = useMemo(() => {
-    const list = articles[section] ?? [];
+    const list = (articles[section] ?? []) as Article[]; // Используем наш новый тип
     if (!search.trim()) return list.slice().sort((a, b) => a.title.localeCompare(b.title, 'ru'));
     const needle = search.trim().toLowerCase();
     return list
@@ -125,7 +118,7 @@ const GmEditorPage: React.FC = () => {
   }, [articles, section, search]);
 
   const currentArticle = useMemo(() => {
-    const list = articles[section] ?? [];
+    const list = (articles[section] ?? []) as Article[]; // Используем наш новый тип
     return list.find((item) => item.id === selectedId) ?? null;
   }, [articles, section, selectedId]);
 
@@ -146,7 +139,7 @@ const GmEditorPage: React.FC = () => {
   const handleChangeSection = (newSection: SectionId) => {
     if (newSection === section) return;
     if (isDirty && !window.confirm('Есть несохранённые изменения. Продолжить без сохранения?')) return;
-    const firstId = (articles[newSection] ?? [])[0]?.id ?? null;
+    const firstId = ((articles[newSection] ?? []) as Article[])[0]?.id ?? null; // Используем наш новый тип
     setSection(newSection);
     setSelectedId(firstId);
     setIsDirty(false);
@@ -158,7 +151,7 @@ const GmEditorPage: React.FC = () => {
 
   const updateCurrent = (patch: Patch | PatchFn) => {
     setArticles((prev) => {
-      const list = prev[section] ?? [];
+      const list = (prev[section] ?? []) as Article[]; // Используем наш новый тип
       const currentFromState = list.find((item) => item.id === selectedId);
       if (!currentFromState) return prev;
       const patchObject = typeof patch === 'function' ? patch(currentFromState) : patch;
@@ -175,9 +168,12 @@ const GmEditorPage: React.FC = () => {
     const articleToSave: Article = { ...currentArticle, updatedAt: Date.now() };
     setArticles(prev => ({
       ...prev,
-      [section]: prev[section].map(a => a.id === articleToSave.id ? articleToSave : a)
+      [section]: (prev[section] as Article[]).map(a => a.id === articleToSave.id ? articleToSave : a)
     }));
     try {
+      // Приводим к 'ImportedArticle', чтобы убрать 'category' перед отправкой, если нужно
+      // Но API, скорее всего, просто проигнорирует лишнее поле.
+      // Оставляем как есть для простоты.
       await saveArticle(section, articleToSave);
       setIsDirty(false);
       console.log('✅ Сохранено:', articleToSave.title);
@@ -193,7 +189,6 @@ const GmEditorPage: React.FC = () => {
     if (isSaving) return;
     if (isDirty && !window.confirm('Есть несохранённые изменения. Перезаписать локальные данные из облака?')) return;
     try {
-      // ✅ Эта кнопка теперь просто делает то же самое, что и при загрузке
       const cloudData = await fetchArticles(); 
       setArticles(cloudData);
       setIsDirty(false);
@@ -224,6 +219,7 @@ const GmEditorPage: React.FC = () => {
 
   const handleNewArticle = async () => {
     if (isDirty && !window.confirm('Есть несохранённые изменения. Продолжить без сохранения?')) return;
+    // [ИЗМЕНЕНО] Указываем, что template соответствует нашему типу Article
     const template: Article = {
       id: createId('art'),
       title: 'Новая статья',
@@ -236,16 +232,18 @@ const GmEditorPage: React.FC = () => {
     };
     if (section === 'races') template.baseStats = DEFAULT_STATS;
     if (section === 'characters') template.coverColor = RELATION_MAP['Неизвестное'];
+    
     if (section === 'creatures') {
       template.ac = '';
       template.attacks = '';
+      template.category = ''; // Это поле теперь валидно
     }
 
     try {
       await saveArticle(section, template);
       setArticles((prev) => ({
         ...prev,
-        [section]: [template, ...(prev[section] ?? [])],
+        [section]: [template, ...((prev[section] ?? []) as Article[])], // Используем наш новый тип
       }));
       setSelectedId(template.id);
       setIsDirty(false);
@@ -259,7 +257,7 @@ const GmEditorPage: React.FC = () => {
   const removeArticle = async (id: string) => {
     if (!window.confirm('Удалить эту статью?')) return;
     setArticles((prev) => {
-      const nextList = (prev[section] ?? []).filter((item) => item.id !== id);
+      const nextList = ((prev[section] ?? []) as Article[]).filter((item) => item.id !== id); // Используем наш новый тип
       if (selectedId === id) {
         const nextId = nextList[0]?.id ?? null;
         setSelectedId(nextId);
@@ -273,7 +271,6 @@ const GmEditorPage: React.FC = () => {
 
   const toolbar = (
     <div className="ge-toolbar">
-      {/* ... (весь JSX тулбара остается без изменений) ... */}
       <button type="button" onClick={() => exec('bold')}><i className="fa-solid fa-bold" /></button>
       <button type="button" onClick={() => exec('italic')}><i className="fa-solid fa-italic" /></button>
       <button type="button" onClick={() => exec('underline')}><i className="fa-solid fa-underline" /></button>
@@ -299,7 +296,6 @@ const GmEditorPage: React.FC = () => {
   return (
     <div className="ge-root">
       <header className="ge-header">
-        {/* ... (JSX хедера без изменений) ... */}
         <div>
           <p className="ge-kicker">GM Studio</p>
           <h1>Редактор статей</h1>
@@ -320,7 +316,6 @@ const GmEditorPage: React.FC = () => {
 
       <div className="ge-layout">
         <aside className="ge-sidebar">
-          {/* ... (JSX сайдбара (табы и поиск) без изменений) ... */}
           <div className="ge-section-tabs">
             {LORE_SECTIONS.map((meta) => (
               <button
@@ -341,7 +336,6 @@ const GmEditorPage: React.FC = () => {
           </div>
 
           <ul className="ge-article-list">
-            {/* [ИЗМЕНЕНО] ✅ Показываем заглушку, пока `isLoaded` false */}
             {!isLoaded && <p className="ge-empty">Загрузка статей...</p>}
             
             {isLoaded && filteredList.map((item) => (
@@ -366,13 +360,11 @@ const GmEditorPage: React.FC = () => {
         </aside>
 
         <section className="ge-editor" aria-live="polite">
-          {/* [ИЗМЕНЕНО] ✅ Показываем заглушку, пока `isLoaded` false */}
           {!currentArticle && !isLoaded && <div className="ge-placeholder">Загрузка...</div>}
           {!currentArticle && isLoaded && <div className="ge-placeholder">Выберите или создайте статью.</div>}
           
           {currentArticle && (
             <div className="ge-editor-card">
-              {/* ... (JSX meta-row, full, stats-row) ... */}
               <div className="ge-meta-row">
                 <label>
                   Заголовок
@@ -436,8 +428,18 @@ const GmEditorPage: React.FC = () => {
                       placeholder="Напр: Укус +4 (1d6+2)"
                     />
                   </label>
+                  <label>
+                    Категория
+                    {/* Это поле теперь валидно благодаря нашему новому типу Article */}
+                    <input
+                      value={currentArticle.category || ''}
+                      onChange={(e) => updateCurrent({ category: e.target.value })}
+                      placeholder="Напр: Нежить, Гуманоид"
+                    />
+                  </label>
                 </div>
               )}
+
 
               {section === 'races' && (
                 <div className="ge-stats-row">
@@ -472,7 +474,6 @@ const GmEditorPage: React.FC = () => {
               </div>
 
               <div className="ge-editor-footer">
-                {/* ... (JSX футера (кнопки) без изменений) ... */}
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <button 
                     type="button" 
@@ -499,7 +500,6 @@ const GmEditorPage: React.FC = () => {
         </section>
 
         <aside className="ge-preview" aria-live="polite">
-          {/* ... (JSX превью без изменений) ... */}
           {!isPreview || !currentArticle ? (
             <div className="ge-preview-placeholder">
               <i className="fa-solid fa-wand-magic-sparkles" />
@@ -531,8 +531,15 @@ const GmEditorPage: React.FC = () => {
                   <span className="ge-preview-stat">
                     <i className="fa-solid fa-gavel" /> Атаки: <strong>{currentArticle.attacks || '...'}</strong>
                   </span>
+                  {/* Это поле теперь валидно */}
+                  {currentArticle.category && (
+                    <span className="ge-preview-stat">
+                      <i className="fa-solid fa-folder-open" /> Категория: <strong>{currentArticle.category}</strong>
+                    </span>
+                  )}
                 </div>
               )}
+
 
               <div className="ge-preview-body" dangerouslySetInnerHTML={{ __html: currentArticle.content }} />
             </div>

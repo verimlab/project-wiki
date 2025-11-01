@@ -26,7 +26,7 @@ const sectors: Array<{ id: string; label: string; iconClass: string; restrictedT
   { id: 'equipment', label: 'Снаряжение', iconClass: 'fa-solid fa-shield-halved' },
   { id: 'races', label: 'Расы', iconClass: 'fa-solid fa-people-group' },
   { id: 'worlds', label: 'Миры', iconClass: 'fa-solid fa-globe' },
-  { id: 'creatures', label: 'Монстры', iconClass: 'fa-solid fa-dragon' },
+  { id: 'creatures', label: 'Существа', iconClass: 'fa-solid fa-dragon' },
   { id: 'items', label: 'Предметы', iconClass: 'fa-solid fa-box-open' },
   { id: 'notes', label: 'Заметки', iconClass: 'fa-regular fa-note-sticky' },
   { id: 'gazette', label: 'Газета Кара\'нокта', iconClass: 'fa-regular fa-newspaper' },

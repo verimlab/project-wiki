@@ -25,6 +25,10 @@ import GazettePage from './components/GazettePage';
 import ItemsPage from './components/GmItemsPage';
 import RulesPage from './components/RulesPage';
 import CombatRulePage from './components/CombatRulePage';
+// [ИЗМЕНЕНО] ❗️ Импортируем новую страницу правил
+import ActionEconomyRulePage from './components/ActionEconomyRulePage';
+import NotFoundPage from './components/NotFoundPage';
+
 
 // --- Провайдеры Поиска ---
 import { SearchProvider } from './components/SearchContext'; 
@@ -59,6 +63,9 @@ const App: React.FC = () => {
           <Route path="/gm-items" element={<ItemsPage />} />
           <Route path="/rules" element={<RulesPage />} />
           <Route path="/rules/combat" element={<CombatRulePage />} />
+          {/* [ИЗМЕНЕНО] ❗️ Добавляем новый роут для правила */}
+          <Route path="/rules/action-economy" element={<ActionEconomyRulePage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         {/* [ИСПРАВЛЕНО] ❗️ BrowserRouter убран */}
     </SearchProvider>

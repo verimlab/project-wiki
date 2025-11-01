@@ -45,9 +45,13 @@ export type Skill = {
   branches: SkillBranch[];
   hasAttack?: boolean;
   attack?: SkillAttackData;
+  category?: SkillCategory; // grouping in UI
 };
 
 export type SkillCatalogEntry = Skill & { id: string };
+
+// Normalized ids for grouping skills
+export type SkillCategory = 'proficiency' | 'magic' | 'passive' | 'misc';
 
 export type InventoryCategoryId =
   | 'gear'

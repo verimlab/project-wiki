@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-// vvv ДОБАВЛЕНЫ 'writeBatch', 'where' vvv
 import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, deleteDoc, arrayUnion, arrayRemove, writeBatch, where } from 'firebase/firestore'; 
 import type { Unsubscribe } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -42,7 +41,6 @@ type Invite = {
   participantId?: string;
 };
 
-// vvv ДОБАВЛЕН ТИП ДЛЯ ШАБЛОНА vvv
 type CombatTemplate = {
   id: string;
   name: string;
@@ -72,15 +70,12 @@ const CombatPage: React.FC = () => {
   const [newCondition, setNewCondition] = useState('');
   const [newEffect, setNewEffect] = useState('');
 
-  // vvv ДОБАВЛЕНЫ СОСТОЯНИЯ ДЛЯ ШАБЛОНОВ vvv
   const [templates, setTemplates] = useState<CombatTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [templateLoading, setTemplateLoading] = useState(false);
-  // ^^^ КОНЕЦ НОВЫХ СОСТОЯНИЙ ^^^
 
-  // Resolve auth and role (copying approach from HomePage)
+  // Resolve auth and role
   useEffect(() => {
-    // ... (этот useEffect без изменений)
     const unsub = onAuthStateChanged(auth, async (usr) => {
       setUserUid(usr?.uid ?? null);
       if (!usr) {
@@ -113,9 +108,8 @@ const CombatPage: React.FC = () => {
     return () => unsub();
   }, []);
 
-  // Subscribe to combat data (participants and invites)
+  // Subscribe to combat data
   useEffect(() => {
-    // ... (этот useEffect без изменений)
     let unsubscribers: Unsubscribe[] = [];
     if (!combatId) return;
 
@@ -152,33 +146,55 @@ const CombatPage: React.FC = () => {
     };
   }, [combatId]);
 
-  // vvv ДОБАВЛЕН useEffect ДЛЯ ЗАГРУЗКИ ШАБЛОНОВ vvv
+  // --- [ИЗМЕНЕНО] ---
+  // Эффект 1: Загружает шаблоны при входе
   useEffect(() => {
     if (!userUid) {
       setTemplates([]);
       return;
     }
-    // Загружаем шаблоны, принадлежащие текущему ГМу
+    
+    // [ИСПРАВЛЕНИЕ] Убран `orderBy('name', 'asc')`
+    // Это самая частая причина сбоя (требует составного индекса)
     const q = query(
       collection(db, 'combatTemplates'),
-      where('ownerUid', '==', userUid),
-      orderBy('name', 'asc')
+      where('ownerUid', '==', userUid)
     );
+    
     const unsub = onSnapshot(q, (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, name: d.data().name as string }));
+      
+      // [ИСПРАВЛЕНИЕ] Сортируем на клиенте (в коде)
+      list.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+      
       setTemplates(list);
-      // Автоматически выбираем первый шаблон в списке, если он есть
-      if (list.length > 0 && !selectedTemplateId) {
-        setSelectedTemplateId(list[0].id);
-      }
+    }, (err) => {
+      // [ИСПРАВЛЕНИЕ] Добавлен обработчик ошибок
+      console.error("Ошибка 'слушателя' шаблонов:", err);
+      setError("Не удалось загрузить шаблоны: " + err.message);
     });
+    
     return () => unsub();
-  }, [userUid]);
-  // ^^^ КОНЕЦ НОВОГО useEffect ^^^
+  }, [userUid]); // Зависит ТОЛЬКО от userUid
+
+  // Эффект 2: Реагирует на изменение списка шаблонов
+  useEffect(() => {
+    if (templates.length === 0) {
+      setSelectedTemplateId(''); // Очищаем выбор, если список пуст
+      return;
+    }
+
+    const currentSelectionExists = templates.some(t => t.id === selectedTemplateId);
+    
+    if (!currentSelectionExists) {
+      setSelectedTemplateId(templates[0].id);
+    }
+    
+  }, [templates]); // Зависит ТОЛЬКО от списка templates
+  // --- [КОНЕЦ ИЗМЕНЕНИЯ] ---
 
   // Auto-create participant when invite accepted
   useEffect(() => {
-    // ... (этот useEffect без изменений)
     const run = async () => {
       if (!combatId) return;
       for (const inv of invites) {
@@ -246,7 +262,6 @@ const CombatPage: React.FC = () => {
 
   // Load available characters for inviting (GM view)
   useEffect(() => {
-    // ... (этот useEffect без изменений)
     const loadChars = async () => {
       try {
         const q = query(collection(db, 'characterSheets'), orderBy('updatedAt', 'desc'));
@@ -265,7 +280,6 @@ const CombatPage: React.FC = () => {
   }, []);
 
   const handleCreateCombat = async () => {
-    // ... (эта функция без изменений)
     if (!userUid) {
       setError('Необходима авторизация.');
       return;
@@ -286,7 +300,6 @@ const CombatPage: React.FC = () => {
   };
 
   const handleInvite = async (e: FormEvent) => {
-    // ... (эта функция без изменений)
     e.preventDefault();
     if (!combatId || !selectedCharId) return;
     const ch = characters.find((c) => c.id === selectedCharId);
@@ -303,8 +316,8 @@ const CombatPage: React.FC = () => {
         characterName: ch.name,
         targetUid: ch.ownerUid,
       });
-      // Mirror doc for quick lookup by player (no collectionGroup indexes)
-      await updateDoc(inviteRef, {}); // ensure server timestamp applied before mirroring
+      // Mirror doc
+      await updateDoc(inviteRef, {}); 
       await (await import('firebase/firestore')).setDoc(
         (await import('firebase/firestore')).doc(db, 'userInvites', ch.ownerUid, 'items', inviteRef.id),
         {
@@ -325,21 +338,18 @@ const CombatPage: React.FC = () => {
   const blocked = !loading && role !== 'gm';
 
   const startCombat = async () => {
-    // ... (эта функция без изменений)
     if (!combatId) return;
     const combatDoc = doc(db, 'combats', combatId);
     await updateDoc(combatDoc, { status: 'active', round: 1, activeIndex: 0 });
   };
 
   const endCombat = async () => {
-    // ... (эта функция без изменений)
     if (!combatId) return;
     const combatDoc = doc(db, 'combats', combatId);
     await updateDoc(combatDoc, { status: 'ended' });
   };
 
   const nextTurn = async () => {
-    // ... (эта функция без изменений)
     if (!combatId) return;
     const cnt = participants.length;
     if (cnt === 0) return;
@@ -350,7 +360,6 @@ const CombatPage: React.FC = () => {
   };
 
   const prevTurn = async () => {
-    // ... (эта функция без изменений)
     if (!combatId) return;
     const cnt = participants.length;
     if (cnt === 0) return;
@@ -361,7 +370,6 @@ const CombatPage: React.FC = () => {
   };
 
   const addQuickParticipant = async () => {
-    // ... (эта функция без изменений)
     if (!combatId) return;
     try {
       const ref = await addDoc(collection(db, 'combats', combatId, 'participants'), {
@@ -389,13 +397,11 @@ const CombatPage: React.FC = () => {
   };
 
   const updateSelected = async (patch: Partial<Participant>) => {
-    // ... (эта функция без изменений)
     if (!combatId || !selected) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), patch as Record<string, unknown>);
   };
 
   const rollD20ForInitiative = async () => {
-    // ... (эта функция без изменений)
     if (!selected) return;
     const roll = Math.floor(Math.random() * 20) + 1;
     await updateSelected({ initiative: roll });
@@ -403,7 +409,6 @@ const CombatPage: React.FC = () => {
 
   // --- Функции для управления Состояниями и Эффектами ---
   const addCondition = async () => {
-    // ... (эта функция без изменений)
     if (!combatId || !selected || !newCondition.trim()) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       conditions: arrayUnion(newCondition.trim())
@@ -411,14 +416,12 @@ const CombatPage: React.FC = () => {
     setNewCondition('');
   };
   const removeCondition = async (condition: string) => {
-    // ... (эта функция без изменений)
     if (!combatId || !selected) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       conditions: arrayRemove(condition)
     });
   };
   const addEffect = async () => {
-    // ... (эта функция без изменений)
     if (!combatId || !selected || !newEffect.trim()) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       effects: arrayUnion(newEffect.trim())
@@ -426,7 +429,6 @@ const CombatPage: React.FC = () => {
     setNewEffect('');
   };
   const removeEffect = async (effect: string) => {
-    // ... (эта функция без изменений)
     if (!combatId || !selected) return;
     await updateDoc(doc(db, 'combats', combatId, 'participants', selected.id), {
       effects: arrayRemove(effect)
@@ -434,11 +436,7 @@ const CombatPage: React.FC = () => {
   };
   // --- Конец функций ---
 
-  // vvv ДОБАВЛЕНЫ ФУНКЦИИ ДЛЯ ШАБЛОНОВ vvv
 
-  /**
-   * Сохраняет текущих участников (кроме игроков) как новый шаблон.
-   */
   const handleSaveTemplate = async () => {
     const nonPlayerParticipants = participants.filter(p => p.type !== 'player' && !p.ownerUid);
 
@@ -453,23 +451,26 @@ const CombatPage: React.FC = () => {
     setTemplateLoading(true);
     setError(null);
     try {
-      // 1. Создаем основной документ шаблона
       const templateRef = await addDoc(collection(db, 'combatTemplates'), {
         name: name.trim(),
         ownerUid: userUid,
         createdAt: serverTimestamp(),
       });
 
-      // 2. Пакетно записываем всех участников (кроме игроков) в подколлекцию
       const batch = writeBatch(db);
       const templatePartsCol = collection(db, 'combatTemplates', templateRef.id, 'participants');
       
       for (const p of nonPlayerParticipants) {
-        const { id, ...data } = p; // Убираем 'id' из live-боя
-        batch.set(doc(templatePartsCol), data); // Firestore сгенерирует новый ID
+        const { id, ...data } = p; 
+        batch.set(doc(templatePartsCol), data); 
       }
 
       await batch.commit();
+
+      // onSnapshot (из Эффекта 1) сам обновит список 'templates'
+      // А Эффект 2 сам выберет этот новый шаблон
+      setSelectedTemplateId(templateRef.id);
+
       alert('Шаблон сохранен! (Участники-игроки были пропущены)');
     } catch (e) {
       console.error(e);
@@ -479,9 +480,6 @@ const CombatPage: React.FC = () => {
     }
   };
 
-  /**
-   * Загружает участников из выбранного шаблона в текущий бой.
-   */
   const handleLoadTemplate = async () => {
     if (!combatId || !selectedTemplateId) {
       setError('Шаблон не выбран.');
@@ -490,7 +488,6 @@ const CombatPage: React.FC = () => {
     setTemplateLoading(true);
     setError(null);
     try {
-      // 1. Получаем всех участников из подколлекции шаблона
       const templatePartsCol = collection(db, 'combatTemplates', selectedTemplateId, 'participants');
       const snap = await getDocs(templatePartsCol);
       
@@ -500,13 +497,11 @@ const CombatPage: React.FC = () => {
         return;
       }
 
-      // 2. Пакетно записываем их в подколлекцию *текущего* боя
       const batch = writeBatch(db);
       const combatPartsCol = collection(db, 'combats', combatId, 'participants');
       
       for (const docSnap of snap.docs) {
         const data = docSnap.data();
-        // Добавляем 'createdAt' для нового участника
         const newParticipantData = {
           ...data,
           createdAt: serverTimestamp(),
@@ -523,9 +518,6 @@ const CombatPage: React.FC = () => {
     }
   };
 
-  /**
-   * Удаляет выбранный шаблон (включая всех участников внутри него).
-   */
   const handleDeleteTemplate = async () => {
     if (!selectedTemplateId) return;
     
@@ -539,7 +531,6 @@ const CombatPage: React.FC = () => {
       const templateRef = doc(db, 'combatTemplates', selectedTemplateId);
       const templatePartsCol = collection(db, 'combatTemplates', selectedTemplateId, 'participants');
       
-      // 1. Удаляем всех участников из подколлекции
       const snap = await getDocs(templatePartsCol);
       const batch = writeBatch(db);
       snap.docs.forEach(doc => {
@@ -547,10 +538,10 @@ const CombatPage: React.FC = () => {
       });
       await batch.commit();
 
-      // 2. Удаляем сам документ шаблона
       await deleteDoc(templateRef);
 
-      setSelectedTemplateId(''); // Сбрасываем выбор
+      // onSnapshot и Эффект 2 сами сбросят/обновят selectedTemplateId
+      
       alert('Шаблон удален.');
 
     } catch (e) {
@@ -560,13 +551,11 @@ const CombatPage: React.FC = () => {
       setTemplateLoading(false);
     }
   };
-  // ^^^ КОНЕЦ ФУНКЦИЙ ДЛЯ ШАБЛОНОВ ^^^
 
 
   return (
     <div className="combat-root">
       <header className="combat-header">
-        {/* ... (header без изменений) ... */}
         <div>
           <h1>Боевые инструменты</h1>
           <p>Настройте участников и управляйте ходом боя в реальном времени.</p>
@@ -614,7 +603,6 @@ const CombatPage: React.FC = () => {
                 )}
               </div>
 
-              {/* vvv ДОБАВЛЕН БЛОК ШАБЛОНОВ vvv */}
               {combatId && (
                 <div className="combat-card">
                   <div className="combat-card-title">Шаблоны боя</div>
@@ -660,7 +648,6 @@ const CombatPage: React.FC = () => {
                   </div>
                 </div>
               )}
-              {/* ^^^ КОНЕЦ БЛОКА ШАБЛОНОВ ^^^ */}
 
 
               <div className="combat-card">
@@ -669,7 +656,6 @@ const CombatPage: React.FC = () => {
                   <p className="muted">Пока нет участников</p>
                 ) : (
                   <ul className="initiative-list">
-                    {/* ... (map по participants без изменений) ... */}
                     {participants.map((p, idx) => {
                       const hpVal = Number(p.hp ?? 0);
                       const hpMaxVal = Math.max(0, Number(p.hpMax ?? 0));
@@ -727,7 +713,6 @@ const CombatPage: React.FC = () => {
 
               {combatId && (
                 <div className="combat-card">
-                   {/* ... (блок Приглашения без изменений) ... */}
                   <div className="combat-card-title">Приглашения</div>
                   <form onSubmit={handleInvite} className="invite-form invite-form--chars">
                     <select value={selectedCharId} onChange={(e) => setSelectedCharId(e.target.value)}>
@@ -766,7 +751,6 @@ const CombatPage: React.FC = () => {
 
             {/* Правая колонка */}
             <section className="combat-right">
-               {/* ... (блок Сводка боя без изменений) ... */}
               <div className="combat-card">
                 <div className="combat-card-title">Сводка боя</div>
                 <div className="summary-bar">{meta.status === 'idle' && 'Бой ожидает начала.'}{meta.status === 'active' && `Идёт бой. Раунд ${meta.round}.`}{meta.status === 'ended' && 'Бой завершён.'}</div>
@@ -778,7 +762,6 @@ const CombatPage: React.FC = () => {
                   <p className="muted">Выберите участника из очереди слева.</p>
                 ) : (
                   <form className="participant-form" onSubmit={(e) => e.preventDefault()}>
-                     {/* ... (вся <form className="participant-form"> без изменений) ... */}
                     <label>
                       Имя участника
                       <input

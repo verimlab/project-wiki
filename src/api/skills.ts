@@ -1,7 +1,7 @@
 ﻿import { collection, deleteDoc, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 // [ИСПРАВЛЕНО] 1. Импортируем *настоящие* типы
-import type { SkillCatalogEntry, SkillBranch } from '../types/sheet'; 
+import type { SkillCatalogEntry, SkillBranch, SkillCategory } from '../types/sheet'; 
 import { createId } from '../utils/id';
 
 type AttackDetails = {
@@ -29,6 +29,7 @@ export type SkillEditorDraft = {
   rank?: string;
   order?: number;
   createdAt?: number;
+  category?: SkillCategory;
   hasAttack?: boolean;
   attack?: AttackDetails;
 };
@@ -76,6 +77,11 @@ const buildPayload = (input: SkillEditorDraft, now: number) => {
     const rank = input.rank.trim();
     if (rank) payload.rank = rank;
     else payload.rank = null;
+  }
+  if (typeof input.category === 'string') {
+    const allowed: SkillCategory[] = ['proficiency', 'magic', 'passive', 'misc'];
+    const value = input.category as SkillCategory;
+    payload.category = allowed.includes(value) ? value : 'misc';
   }
   
   payload.hasAttack = typeof input.hasAttack === 'boolean' ? input.hasAttack : false;
@@ -150,6 +156,7 @@ export const skillDraftFromCatalog = (entry: SkillCatalogEntry): SkillEditorDraf
   rank: entry.rank,
   order: entry.order,
   createdAt: entry.createdAt,
+  category: entry.category,
   hasAttack: entry.hasAttack,
   attack: entry.attack,
 });

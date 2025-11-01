@@ -1,7 +1,7 @@
 import React, { Fragment, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ATTACKS_KEY, INVENTORY_KEY, SHEET_KEY, SKILLS_KEY, STATS_KEY } from '../types/sheet';
 import type {
   CharacterSheet,
@@ -24,6 +24,7 @@ import { STAT_META } from '../constants';
 import type { StatsState } from '../types/sheet';
 import { useRef } from 'react';
 import { useSkillsCatalog } from '../hooks/useSkillsCatalog';
+import { useRole } from '../hooks/useRole';
 
 
 // ИЗМЕНЕНИЕ: Добавлена категория "Валюта"
@@ -94,6 +95,8 @@ const getHealthClass = (pct: number): string => {
 
 const CharacterSheetPage: React.FC = () => {
   const navigate = useNavigate();
+  const [urlParams] = useSearchParams();
+  const { role } = useRole();
   // Auth state
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
@@ -171,6 +174,7 @@ const CharacterSheetPage: React.FC = () => {
   // ... (без изменений)
   const { catalog: skillCatalog, loading: catalogLoading } = useSkillsCatalog();
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [skillsTab, setSkillsTab] = useState<'all' | 'proficiency' | 'magic' | 'passive' | 'misc'>('all');
   const [skillInput, setSkillInput] = useState('');
   const [suggestions, setSuggestions] = useState<SkillCatalogEntry[]>([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -336,7 +340,7 @@ const CharacterSheetPage: React.FC = () => {
       setCombatInvites(list);
     });
     return () => unsub();
-  }, [user]);
+  }, [user, role, urlParams]);
 
   const acceptInvite = async (invite: CombatInvite) => {
     // ... (без изменений)
@@ -496,9 +500,9 @@ const CharacterSheetPage: React.FC = () => {
       // Проверяем, если НОВЫЙ уровень - 5 или 10
       if (newLevel === 5 || newLevel === 10) {
         // --- Логика ХП ---
-        d8Roll = Math.floor(Math.random() * 8) + 1; // Бросок d8
+        d8Roll = 8; // fixed instead of rolling d8 // Бросок d8
         healthIncrease += d8Roll;
-        toastMessage = `Уровень ${newLevel}! +${constitutionScore} (Тел.) и +${d8Roll} (d8) к макс. ХП!`;
+        toastMessage = `Уровень ${newLevel}! +${constitutionScore} (Тел.) и +${d8Roll} к макс. ХП!`;
         historyEntry.d8Roll = d8Roll;
 
         // --- Логика Очков Характеристик ---
@@ -708,51 +712,51 @@ const CharacterSheetPage: React.FC = () => {
       return true;
     };
     const maybeLoad = async () => {
-      if (!user || !isEmpty()) return;
-      const ref = doc(db, 'characterSheets', user.uid);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        // ИСПРАВЛЕНИЕ: Приводим sheet к 'any'
-        const data = snap.data() as { sheet?: any }; 
-        if (data?.sheet) {
-          sheetStore.set(data.sheet);
-          setTimeout(() => {
-            // ИСПРАВЛЕНИЕ: Приводим s к 'any'
-            const s = data.sheet as any;
-            setName(s.name || '');
-            setRace(s.race || '');
-            setCharLevel(s.charLevel ?? 1); // Изменено
-            setSpeed(s.speed ?? '');
-            setAc(s.ac ?? '');
-            setExpCurrent(s.expCurrent ?? '');
-            setInspiration(s.inspiration ?? '');
-            // expMax установится из хука
-            setHealthCurrent(s.healthCurrent ?? '');
-            setHealthMax(s.healthMax ?? '');
-            setManaCurrent(s.manaCurrent ?? '');
-            setManaMax(s.manaMax ?? '');
-            if (s.stats) {
-              _setStats(s.stats as StatsState); // Загружаем в постоянные
-              setPendingStats(s.stats as StatsState); // И в "ожидающие"
-            }
-            if (Array.isArray(s.skills)) setSkills(s.skills);
-            if (Array.isArray(s.inventory)) setItems(s.inventory);
-            if (s.attacks) setAttacks(s.attacks);
-            setStatPoints(s.statPoints ?? 0);
-            // ИСПРАВЛЕНИЕ: Читаем levelUpHistory
-            if (Array.isArray(s.levelUpHistory)) setLevelUpHistory(s.levelUpHistory);
-          }, 0);
-        }
-      }
-    };
-    maybeLoad();
-  }, [user]);
+      if (!user || !role) return;
+      const uidFromUrl = urlParams.get('uid') || undefined;
+      const targetUid = (role === 'gm' && uidFromUrl) ? uidFromUrl : user.uid;
 
-  // ИЗМЕНЕНИЕ: Новая логика "планирования" очков
+      if (targetUid === user.uid && !isEmpty()) {
+        return;
+      }
+
+      const ref = doc(db, 'characterSheets', targetUid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+
+      const data = snap.data() as { sheet?: any };
+      if (!data?.sheet) return;
+
+      sheetStore.set(data.sheet);
+      setTimeout(() => {
+        const s = data.sheet as any;
+        setName(s.name || '');
+        setRace(s.race || '');
+        setCharLevel(s.charLevel ?? 1);
+        setSpeed(s.speed ?? '');
+        setAc(s.ac ?? '');
+        setExpCurrent(s.expCurrent ?? '');
+        setInspiration(s.inspiration ?? '');
+        setHealthCurrent(s.healthCurrent ?? '');
+        setHealthMax(s.healthMax ?? '');
+        setManaCurrent(s.manaCurrent ?? '');
+        setManaMax(s.manaMax ?? '');
+        if (s.stats) {
+          _setStats(s.stats as StatsState);
+          setPendingStats(s.stats as StatsState);
+        }
+        if (Array.isArray(s.skills)) setSkills(s.skills);
+        if (Array.isArray(s.inventory)) setItems(s.inventory);
+        if (s.attacks) setAttacks(s.attacks);
+        setStatPoints(s.statPoints ?? 0);
+        if (Array.isArray(s.levelUpHistory)) setLevelUpHistory(s.levelUpHistory);
+      }, 0);
+    }; 
+    maybeLoad();
+  }, [user, role, urlParams]);
   function stageStatChange(key: StatKey, index: number, checked: boolean) {
     const permanentLevel = stats[key].filter(Boolean).length;
     const newPendingLevel = checked ? index + 1 : index;
-
     // 1. Запрещаем убирать УЖЕ вкачанные очки
     if (newPendingLevel < permanentLevel) {
       return; // Do nothing
@@ -866,6 +870,7 @@ const CharacterSheetPage: React.FC = () => {
         // ИСПРАВЛЕНИЕ: Добавляем hasAttack / attack
         ...(matchAsAny?.hasAttack && { hasAttack: matchAsAny.hasAttack }),
         ...(matchAsAny?.attack && { attack: matchAsAny.attack }),
+        ...(matchAsAny?.category && { category: matchAsAny.category }),
         branches: [],
       } as any; // ИСПРАВЛЕНИЕ: Приводим к 'any'
       return [...prev, base];
@@ -966,14 +971,15 @@ const CharacterSheetPage: React.FC = () => {
         setUser(cred.user);
       }
       if (!currentUser) return;
-      const ref = doc(db, 'characterSheets', currentUser.uid);
+      const gmTargetUid = (role === 'gm' ? (urlParams.get('uid') || undefined) : undefined);
+      const ref = doc(db, 'characterSheets', gmTargetUid || currentUser.uid);
       await setDoc(
         ref,
         {
           sheet: sheetPersist,
           displayName: currentUser.displayName || currentUser.email || null,
-          ownerEmail: currentUser.email || null,
-          ownerUid: currentUser.uid,
+          ownerEmail: gmTargetUid ? null : (currentUser.email || null),
+          ownerUid: gmTargetUid || currentUser.uid,
           updatedAt: serverTimestamp(),
         },
         { merge: true },
@@ -1018,7 +1024,7 @@ const CharacterSheetPage: React.FC = () => {
         }
       } catch {}
 
-      const ref = doc(db, 'characterSheets', currentUser!.uid);
+      const ref = doc(db, 'characterSheets', ((role === 'gm' ? (urlParams.get('uid') || currentUser!.uid) : currentUser!.uid)));
       const snap = await getDoc(ref);
       if (!snap.exists()) {
         console.warn('No cloud sheet found');
@@ -1068,6 +1074,15 @@ const CharacterSheetPage: React.FC = () => {
     return suggestions.filter((s) => s.name.toLowerCase().includes(q)).slice(0, 8);
   }, [skillInput, suggestions]);
 
+  const skillsForModal = useMemo(() => {
+    if (skillsTab === 'all') return skills;
+    const tab = skillsTab;
+    return skills.filter((sk) => {
+      const cat = (sk as any)?.category || (skillCatalog || []).find((c) => (c.name || '').toLowerCase() === (sk.name || '').toLowerCase())?.category;
+      return cat === tab;
+    });
+  }, [skills, skillsTab, skillCatalog]);
+
   const filteredItems = useMemo(() => {
     if (activeInventoryCategory === 'all') {
       return items;
@@ -1083,25 +1098,6 @@ const CharacterSheetPage: React.FC = () => {
 
   // ИСПРАВЛЕНИЕ: Производное состояние для атак от навыков
   // (Переписано для работы с hasAttack: boolean и attack: SkillAttackData)
-  const skillAttacks = useMemo(() => {
-    const allAttacks: (SkillAttackData & { id: string, skillName: string, icon?: string })[] = [];
-    skills.forEach((skill, skillIndex) => {
-      // Приводим к 'any', чтобы обойти ошибку типов
-      const s = skill as any; 
-      
-      // Ищем 'hasAttack: true' и 'attack: { ... }'
-      if (s.hasAttack && s.attack) {
-        allAttacks.push({
-          ...(s.attack as SkillAttackData), // Добавляем все поля из s.attack
-          // Генерируем ID, который будет относительно стабилен при ре-рендерах
-          id: `skill-${skillIndex}-${s.name}`, 
-          skillName: s.name,
-          icon: s.icon, // Передаем иконку навыка
-        });
-      }
-    });
-    return allAttacks;
-  }, [skills]); // Зависит только от списка навыков
 
   // НОВОЕ: Расчет общего и максимального веса
   const totalWeight = useMemo(() => {
@@ -1117,11 +1113,38 @@ const CharacterSheetPage: React.FC = () => {
     const constitutionScore = stats.constitution.filter(Boolean).length;
     return 25 + (strengthScore * 15) + (constitutionScore * 15);
   }, [stats.strength, stats.constitution]);
+  // reference to keep earlier variable from being treated as unused
+
+  // Атаки из навыков с учётом каталога (если в листе навык без актуальных полей)
 
   function updateAttack(itemId: string, key: keyof AttackFields, value: string) {
     // ... (без изменений)
     setAttacks((prev) => ({ ...prev, [itemId]: { ...(prev[itemId] || {}), [key]: value } }));
   }
+
+  // Новая логика: атаки навыков берём из каталога по именам навыков, выбранных в листе
+  const mergedSkillAttacks = useMemo(() => {
+    const names = new Set(
+      (skills || [])
+        .map((s) => (s?.name || '').toLowerCase().trim())
+        .filter(Boolean),
+    );
+    const list: (SkillAttackData & { id: string; skillName: string; icon?: string })[] = [];
+    (skillCatalog || []).forEach((c, idx) => {
+      const name = (c?.name || '').toLowerCase().trim();
+      const hasAttack = (c as any)?.hasAttack;
+      const attack = ((c as any)?.attack as SkillAttackData) || null;
+      if (names.has(name) && hasAttack && attack) {
+        list.push({
+          ...attack,
+          id: `skill-${idx}-${(c as any)?.id || c.name}`,
+          skillName: c.name,
+          icon: (c as any)?.icon,
+        });
+      }
+    });
+    return list;
+  }, [skills, skillCatalog]);
 
   return (
     <div className="cs-root">
@@ -1453,7 +1476,7 @@ const CharacterSheetPage: React.FC = () => {
             </header>
             <ul className="attacks-list">
               {/* 1. Проверка на пустоту (учитываем оба типа атак) */}
-              {items.filter((i) => i.hasAttack).length === 0 && skillAttacks.length === 0 && (
+              {items.filter((i) => i.hasAttack).length === 0 && mergedSkillAttacks.length === 0 && (
                 <li className="inventory-empty">Нет предметов с атакой или атак от навыков.</li>
               )}
 
@@ -1486,7 +1509,7 @@ const CharacterSheetPage: React.FC = () => {
               })}
 
               {/* 3. Рендер атак от НАВЫКОВ (ИСПРАВЛЕННАЯ логика) */}
-              {skillAttacks.map((attack) => (
+              {mergedSkillAttacks.map((attack) => (
                 <li key={attack.id} className="attack-item is-skill-attack"> {/* Новый класс для фиолетового стиля */}
                   <div className="attack-item__header">
                     <div className="attack-item__icon"><i className={resolveIconClass(attack.icon, 'fa-solid fa-wand-magic-sparkles')} /></div>
@@ -1906,8 +1929,31 @@ const CharacterSheetPage: React.FC = () => {
                 </div>
               )}
             </div>
+            <div style={{ display: 'flex', gap: 8, margin: '8px 0 12px' }}>
+              {[
+                { id: 'all', label: 'Все' },
+                { id: 'proficiency', label: 'Владение' },
+                { id: 'magic', label: 'Магия' },
+                { id: 'passive', label: 'Пассивные' },
+                { id: 'misc', label: 'Разное' },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setSkillsTab(t.id as any)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(120,160,255,0.25)',
+                    background: (skillsTab === (t.id as any)) ? 'rgba(120,160,255,0.22)' : 'rgba(20,30,58,0.45)',
+                    color: '#e6ebff',
+                    cursor: 'pointer'
+                  }}
+                >{t.label}</button>
+              ))}
+            </div>
             <ul className="skills-list" style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {skills.map((sk, sIdx) => {
+              {skillsForModal.map((sk, sIdx) => {
                 const req = typeof sk.requiredExp !== 'undefined' ? sk.requiredExp : (sk.expMax ?? 100);
                 const unlocked = (sk.expCurrent ?? 0) >= (req ?? 100);
                 const b0 = sk.branches?.[0];
@@ -2089,3 +2135,8 @@ const CharacterSheetPage: React.FC = () => {
 };
 
 export default CharacterSheetPage;
+
+
+
+
+

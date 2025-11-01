@@ -14,6 +14,13 @@ const rulesSectors = [
     iconClass: 'fa-solid fa-khanda',
     path: '/rules/combat',
   },
+  // [ИЗМЕНЕНО] ❗️ Добавлен новый раздел правил
+  {
+    id: 'action-economy',
+    label: 'Экономика трёх действий',
+    iconClass: 'fa-solid fa-person-running', // Иконка "бегущего человека" для действий
+    path: '/rules/action-economy',
+  },
   // Здесь можно будет добавлять другие правила (например, "Магия", "Навыки")
 ];
 

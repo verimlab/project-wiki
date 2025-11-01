@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-// [ИСПРАВЛЕНО] Убраны ArticlesMap и buildDefaultArticles
-import type { Article } from '../types/lore';
+import type { Article, SectionId } from '../types/lore';
 import { fetchArticles } from '../api/lore';
+
+export type SearchResult = Article & { sectionId: SectionId };
 
 type SearchContextType = {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  results: Article[];
+  results: SearchResult[];
   isLoading: boolean;
 };
 
@@ -26,15 +27,16 @@ type SearchProviderProps = {
 export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const [allArticles, setAllArticles] = useState<Article[]>([]);
+  const [allArticles, setAllArticles] = useState<SearchResult[]>([]);
 
   useEffect(() => {
     const loadAllArticles = async () => {
       try {
         const articlesMap = await fetchArticles();
-        const flatList = Object.values(articlesMap).flat();
-        setAllArticles(flatList);
+        const withSections: SearchResult[] = Object.entries(articlesMap).flatMap(([sectionId, arr]) =>
+          (arr as Article[]).map((a) => ({ ...a, sectionId: sectionId as SectionId }))
+        );
+        setAllArticles(withSections);
       } catch (err) {
         console.error('Failed to load all articles for search', err);
       } finally {
@@ -44,22 +46,20 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
     loadAllArticles();
   }, []);
 
-  const results = useMemo(() => {
+  const results = useMemo((): SearchResult[] => {
     const needle = searchQuery.trim().toLowerCase();
-    if (!needle) return []; 
-    if (isLoading) return [];
-
-    return allArticles.filter(article => 
-      article.title.toLowerCase().includes(needle) ||
-      article.summary.toLowerCase().includes(needle)
+    if (!needle || isLoading) return [];
+    return allArticles.filter(article =>
+      (article.title || '').toLowerCase().includes(needle) ||
+      (article.summary || '').toLowerCase().includes(needle)
     );
   }, [searchQuery, allArticles, isLoading]);
 
-  const value = {
+  const value: SearchContextType = {
     searchQuery,
     setSearchQuery,
     results,
-    isLoading
+    isLoading,
   };
 
   return (
@@ -67,4 +67,5 @@ export const SearchProvider: React.FC<SearchProviderProps> = ({ children }) => {
       {children}
     </SearchContext.Provider>
   );
-}
+};
+
