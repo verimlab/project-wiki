@@ -8,6 +8,7 @@ import type { FormEvent } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Link, useSearchParams } from 'react-router-dom';
 import './HomePage.css';
+import DicePreview3D from './DicePreview3D';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
 import { WEAPONS, ARMOR } from '../data/equipment';
@@ -62,6 +63,8 @@ const HomePage: React.FC = () => {
   const [isDiceOpen, setIsDiceOpen] = useState(false);
   const [diceConfig, setDiceConfig] = useState<Record<number, number>>(buildInitialDiceConfig);
   const [results, setResults] = useState<DiceResultGroup[] | null>(null);
+  const [isRolling, setIsRolling] = useState(false);
+  const [rolledDice, setRolledDice] = useState<Array<{ id: string; faces: number; value: number }>>([]);
   const [error, setError] = useState<string | null>(null);
   const { user, role, signIn } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -248,6 +251,7 @@ const HomePage: React.FC = () => {
   const openDice = () => {
     setIsDiceOpen(true);
     setResults(null);
+    setRolledDice([]);
     setError(null);
   };
 
@@ -283,7 +287,16 @@ const HomePage: React.FC = () => {
     }
 
     setError(null);
-    setResults(groups);
+    setResults(null);
+    const entries: Array<{ id: string; faces: number; value: number }> = [];
+    groups.forEach(g => {
+      g.rolls.forEach((v, idx) => {
+        entries.push({ id: `${g.faces}-${idx}-${Math.random().toString(36).slice(2,7)}` , faces: g.faces, value: v });
+      });
+    });
+    setRolledDice(entries);
+    setIsRolling(true);
+    window.setTimeout(() => setIsRolling(false), 1000);
   };
 
   // ↓↓ ФУНКЦИЯ 'handleSearchSubmit' УДАЛЕНА ОТСЮДА ↓↓
@@ -477,6 +490,19 @@ const HomePage: React.FC = () => {
                 </button>
               </footer>
             </form>
+
+            {(isRolling || rolledDice.length > 0) && (
+              <section className="hw-dice-rolling" aria-live="polite" aria-busy={isRolling}>
+                <div className="hw-dice-rolling-grid">
+                  {rolledDice.map((d) => (
+                    <div key={d.id} className="hw-die-roll">
+                      <DicePreview3D faces={d.faces} value={d.value} size={72} spinMs={1000} />
+                      <div className="hw-die-caption">d{d.faces}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {results && (
               <section className="hw-modal-results" aria-live="polite">

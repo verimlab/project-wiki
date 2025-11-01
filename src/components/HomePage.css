@@ -719,6 +719,118 @@
   border-top:1px solid rgba(118,162,255,0.16);
 }
 
+/* Rolling animation */
+.hw-dice-rolling{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  padding:16px 0 0;
+  border-top:1px solid rgba(118,162,255,0.12);
+}
+
+.hw-dice-rolling-grid{ display:flex; flex-wrap:wrap; gap:16px 18px; justify-content:center; }
+.hw-die-roll{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+.hw-die-caption{ font-size:12px; letter-spacing:0.12em; color:rgba(208,220,255,0.75); text-transform:uppercase; }
+
+.hw-roller3d{ width:100%; display:flex; justify-content:center; }
+.hw-roller3d-stage{ perspective: 900px; }
+.hw-cube{
+  position: relative;
+  width: 96px;
+  height: 96px;
+  transform-style: preserve-3d;
+  transform: translateZ(-48px);
+  animation: cube-spin 900ms ease-in-out infinite;
+}
+.hw-cube--sm{ width:72px; height:72px; transform: translateZ(-36px); }
+.hw-cube--sm .hw-cube-face{ width:72px; height:72px; border-radius:12px; font-size:22px; }
+.hw-cube--sm .hw-face-front { transform: rotateY(0deg) translateZ(36px); }
+.hw-cube--sm .hw-face-back { transform: rotateY(180deg) translateZ(36px); }
+.hw-cube--sm .hw-face-right { transform: rotateY(90deg) translateZ(36px); }
+.hw-cube--sm .hw-face-left  { transform: rotateY(-90deg) translateZ(36px); }
+.hw-cube--sm .hw-face-top   { transform: rotateX(90deg) translateZ(36px); }
+.hw-cube--sm .hw-face-bottom{ transform: rotateX(-90deg) translateZ(36px); }
+
+.hw-cube-face{
+  position:absolute;
+  width:96px; height:96px;
+  border-radius:14px;
+  display:grid; place-items:center;
+  font-weight:700; font-size:28px;
+  color:#09132c;
+  background: linear-gradient(160deg, #9ec0ff, #69a1ff);
+  border:1px solid rgba(120,160,255,0.55);
+  box-shadow: inset 0 0 20px rgba(255,255,255,0.35), 0 18px 36px rgba(6,12,28,0.45);
+}
+
+.hw-face-front { transform: rotateY(0deg) translateZ(48px); }
+.hw-face-back { transform: rotateY(180deg) translateZ(48px); }
+.hw-face-right { transform: rotateY(90deg) translateZ(48px); }
+.hw-face-left  { transform: rotateY(-90deg) translateZ(48px); }
+.hw-face-top   { transform: rotateX(90deg) translateZ(48px); }
+.hw-face-bottom{ transform: rotateX(-90deg) translateZ(48px); }
+
+.hw-dice-anim{
+  position:relative;
+  width:100%;
+  height:90px;
+  overflow:hidden;
+}
+
+.hw-dice-sprite{
+  position:absolute;
+  left:-60px;
+  font-size:34px;
+  color:var(--accent);
+  opacity:0.9;
+  filter:drop-shadow(0 6px 12px rgba(0,0,0,0.35));
+  animation: dice-fly 900ms linear infinite;
+}
+
+.hw-dice-rolling-text{
+  font-size:13px;
+  letter-spacing:0.12em;
+  color:rgba(216,228,255,0.85);
+  text-transform:uppercase;
+}
+
+/* Icon-based dice animations for d4, d8, d10, d12, d20, d100, d1000 */
+.hw-die-icon-wrap{ perspective: 800px; }
+.hw-die-icon{ display:inline-grid; place-items:center; width:64px; height:64px; color:var(--accent); filter:drop-shadow(0 8px 16px rgba(0,0,0,0.35)); transform-style:preserve-3d; }
+.hw-die-icon i{ font-size:56px; }
+
+/* default spin */
+.hw-die-icon{ animation: die-spin-3d 900ms linear infinite; }
+.hw-die--d4  { animation-duration: 820ms; }
+.hw-die--d8  { animation-duration: 880ms; }
+.hw-die--d10 { animation-duration: 920ms; }
+.hw-die--d12 { animation-duration: 980ms; }
+.hw-die--d20 { animation-duration: 1100ms; }
+.hw-die--d100, .hw-die--d1000 { animation-duration: 1200ms; }
+
+@keyframes die-spin-3d{
+  0%   { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); opacity:0; }
+  10%  { opacity:1; }
+  35%  { transform: rotateX(160deg) rotateY(120deg) rotateZ(20deg); }
+  70%  { transform: rotateX(340deg) rotateY(260deg) rotateZ(60deg); }
+  100% { transform: rotateX(520deg) rotateY(420deg) rotateZ(120deg); opacity:0.9; }
+}
+
+@keyframes dice-fly{
+  0%{ transform: translateX(0) rotate(0deg); opacity:0; }
+  10%{ opacity:1; }
+  100%{ transform: translateX(calc(100% + 120px)) rotate(720deg); opacity:0; }
+}
+
+@keyframes cube-spin{
+  0%   { transform: translateZ(-48px) rotateX(0deg) rotateY(0deg); }
+  25%  { transform: translateZ(-48px) rotateX(180deg) rotateY(90deg); }
+  50%  { transform: translateZ(-48px) rotateX(360deg) rotateY(180deg); }
+  75%  { transform: translateZ(-48px) rotateX(540deg) rotateY(270deg); }
+  100% { transform: translateZ(-48px) rotateX(720deg) rotateY(360deg); }
+}
+
 .hw-modal-results h3{
   margin:0;
   font-size:18px;
