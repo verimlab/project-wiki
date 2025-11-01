@@ -1,4 +1,4 @@
-import { collection, onSnapshot, query } from 'firebase/firestore';
+﻿import { collection, onSnapshot, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import type { Article, ArticlesMap, SectionId } from '../types/lore';
@@ -11,23 +11,46 @@ const emptyMap = (): ArticlesMap =>
   }, {} as ArticlesMap);
 
 const mapDocToArticle = (id: string, data: Record<string, unknown>): Article => {
-  const updatedAtRaw = data.updatedAt;
+  const updatedAtRaw = (data as any).updatedAt;
   const updatedAt = typeof updatedAtRaw === 'number'
     ? updatedAtRaw
-    : typeof updatedAtRaw === 'object' && updatedAtRaw !== null && 'toMillis' in updatedAtRaw
+    : (updatedAtRaw && typeof updatedAtRaw === 'object' && 'toMillis' in updatedAtRaw)
       ? (updatedAtRaw as { toMillis: () => number }).toMillis()
       : Date.now();
 
-  return {
+  const title = typeof (data as any).title === 'string' ? (data as any).title : 'Без названия';
+  const summary = typeof (data as any).summary === 'string' ? (data as any).summary : '';
+  const tags = Array.isArray((data as any).tags) ? ((data as any).tags as string[]) : [];
+  const coverColor = typeof (data as any).coverColor === 'string' ? (data as any).coverColor : '#7d9bff';
+  const icon = typeof (data as any).icon === 'string' ? (data as any).icon : undefined;
+  const content = typeof (data as any).content === 'string' ? (data as any).content : '';
+
+  const bs = (data as any).baseStats;
+  const normalizedBaseStats: Record<string, number> | undefined = bs && typeof bs === 'object'
+    ? Object.fromEntries(Object.entries(bs as Record<string, unknown>).map(([k, v]) => [k, typeof v === 'number' ? v : Number(v) || 0]))
+    : undefined;
+
+  const acVal = (data as any).ac;
+  const attacksVal = (data as any).attacks;
+  const categoryVal = (data as any).category;
+
+  const article = {
     id,
-    title: (data.title as string) ?? 'Без названия',
-    summary: (data.summary as string) ?? '',
-    tags: Array.isArray(data.tags) ? (data.tags as string[]) : [],
-    coverColor: (data.coverColor as string | undefined) ?? '#7d9bff',
-    icon: (data.icon as string | undefined) || undefined,
-    content: (data.content as string) ?? '',
+    title,
+    summary,
+    tags,
+    coverColor,
+    icon,
+    content,
     updatedAt,
-  };
+    baseStats: normalizedBaseStats,
+    ac: acVal != null ? String(acVal) : undefined,
+    attacks: attacksVal != null ? String(attacksVal) : undefined,
+  } as any;
+
+  if (categoryVal != null) article.category = String(categoryVal);
+
+  return article as Article;
 };
 
 export function useLoreArticles(initial?: ArticlesMap) {

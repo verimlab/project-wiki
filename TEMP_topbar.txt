@@ -1,0 +1,133 @@
+// src/components/TopBar.tsx
+
+// [ИСПРАВЛЕНО] ❗️ Добавляем `useState` и `useEffect`
+import React, { type FormEvent, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+// [ИСПРАВЛЕНО] ❗️ Добавляем `User`, `onAuthStateChanged`
+import type { User } from 'firebase/auth';
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
+import { useSearch } from './SearchContext'; 
+// [ДОБАВЛЕНО] ❗️ Импортируем `useRole`, который у тебя *точно* есть
+import { useRole } from '../hooks/useRole'; // ⚠️ ПРОВЕРЬ ЭТОТ ПУТЬ
+
+// [ИСПРАВЛЕНО] ❗️ Убираем `user` и `role` из props
+type TopBarProps = {
+  // Props больше не нужны
+};
+
+const TopBar: React.FC<TopBarProps> = () => { // ❗️ Props убраны
+  const { searchQuery, setSearchQuery } = useSearch();
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // [ДОБАВЛЕНО] ❗️ Теперь TopBar сам следит за `user` и `role`
+  const [user, setUser] = useState<User | null>(auth.currentUser);
+  const { role } = useRole(); // ❗️ `useRole` сам найдет роль
+
+  // [ДОБАВЛЕНО] ❗️ Слушатель для Firebase Auth
+  useEffect(() => {
+    // onAuthStateChanged возвращает функцию "отписки"
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    
+    // Отписываемся, когда компонент размонтируется
+    return () => unsubscribe();
+  }, []); // 👈 Пустой массив = "run once"
+
+
+  const handleSearchSubmit = (e: FormEvent) => {
+    e.preventDefault();
+  };
+
+  const handleGoogleSignIn = async () => {
+    setAuthLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (signInError) {
+      console.error(signInError);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+  };
+
+  const displayName = user?.displayName ?? user?.email ?? 'Гость';
+  const photoURL = user?.photoURL;
+  const roleLabel = role === 'gm' ? 'Гейм-мастер' : role === 'player' ? 'Игрок' : 'Участник';
+
+  return (
+    <header className="hw-topbar">
+      <Link to="/" className="hw-brand">
+        <span className="hw-brand-icon" aria-hidden>
+          <i className="fa-regular fa-gem" />
+        </span>
+        <span>Project Wiki</span>
+      </Link>
+      {user ? (
+        <>
+          <form className="hw-search-form" onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              placeholder="Поиск по всей вики..."
+              className="hw-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="hw-search-button" aria-label="Искать">
+              <i className="fa-solid fa-magnifying-glass" />
+            </button>
+          </form>
+          <div className="hw-user">
+            <Link to="/profile" className="hw-identity" title="Перейти в профиль">
+              {photoURL ? (
+                <img src={photoURL} alt="Аватар" className="hw-avatar" />
+              ) : (
+                <span className="hw-avatar-fallback" aria-hidden="true">
+                  <i className="fa-solid fa-user" />
+                </span>
+              )}
+              <div className="hw-identity-text">
+                <span className="hw-user-name">{displayName}</span>
+                <span className="hw-role">{roleLabel}</span>
+              </div>
+            </Link>
+            <button className="hw-logout" type="button" onClick={handleSignOut}>
+              <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden />
+              <span>Выйти</span>
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <form className="hw-search-form" onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              placeholder="Поиск по всей вики..."
+              className="hw-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="hw-search-button" aria-label="Искать">
+              <i className="fa-solid fa-magnifying-glass" />
+            </button>
+          </form>
+          <button
+            className="hw-login"
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={authLoading}
+          >
+            <i className="fa-solid fa-user-astronaut" aria-hidden />
+            <span>{authLoading ? '...' : 'Войти'}</span>
+          </button>
+        </>
+      )}
+    </header>
+  );
+};
+
+export default TopBar;

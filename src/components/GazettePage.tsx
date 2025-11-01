@@ -226,7 +226,6 @@ const GazettePage: React.FC = () => {
           <div
             key={issue.id}
             className="gp-issue-card"
-            style={{ backgroundImage: `url(${issue.imageUrl})` }}
             onClick={() => handleOpenIssue(issue)}
             role="button"
             tabIndex={0}

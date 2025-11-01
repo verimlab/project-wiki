@@ -1,7 +1,7 @@
 ﻿import { collection, deleteDoc, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 // [ИСПРАВЛЕНО] 1. Импортируем *настоящие* типы
-import type { SkillCatalogEntry, SkillBranch, SkillCategory } from '../types/sheet'; 
+import type { SkillCatalogEntry, SkillBranch, SkillCategory, SkillStatMod, SkillStatModTarget } from '../types/sheet'; 
 import { createId } from '../utils/id';
 
 type AttackDetails = {
@@ -32,6 +32,7 @@ export type SkillEditorDraft = {
   category?: SkillCategory;
   hasAttack?: boolean;
   attack?: AttackDetails;
+  statMods?: SkillStatMod[];
 };
 
 const collectionRef = collection(db, 'skillsCatalog');
@@ -100,6 +101,22 @@ const buildPayload = (input: SkillEditorDraft, now: number) => {
     payload.attack = null;
   }
 
+  // Persist stat modifiers (validated)
+  const allowedTargets: SkillStatModTarget[] = [
+    'strength','dexterity','intellect','constitution','charisma','perception','wisdom','luck','manaMax','healthMax','speed','ac'
+  ];
+  if (Array.isArray(input.statMods)) {
+    const mods: SkillStatMod[] = input.statMods
+      .map((m) => ({
+        target: (m?.target as SkillStatModTarget),
+        delta: Number((m as any)?.delta),
+      }))
+      .filter((m) => allowedTargets.includes(m.target) && Number.isFinite(m.delta));
+    (payload as any).statMods = mods;
+  } else {
+    (payload as any).statMods = [];
+  }
+
   return payload;
 };
 
@@ -159,4 +176,5 @@ export const skillDraftFromCatalog = (entry: SkillCatalogEntry): SkillEditorDraf
   category: entry.category,
   hasAttack: entry.hasAttack,
   attack: entry.attack,
+  statMods: Array.isArray((entry as any).statMods) ? (entry as any).statMods as SkillStatMod[] : [],
 });

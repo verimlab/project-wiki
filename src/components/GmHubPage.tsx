@@ -1,7 +1,17 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import './GmHubPage.css';
 
+const T = {
+  back: String.fromCharCode(0x041D,0x0430,0x0437,0x0430,0x0434),
+  backHome: String.fromCharCode(0x041D,0x0430,0x0437,0x0430,0x0434,0x0020,0x043D,0x0430,0x0020,0x0433,0x043B,0x0430,0x0432,0x043D,0x0443,0x044E),
+  go: String.fromCharCode(0x041F,0x0435,0x0440,0x0435,0x0439,0x0442,0x0438),
+  sheets: String.fromCharCode(0x041B,0x0438,0x0441,0x0442,0x044B,0x0020,0x0438,0x0433,0x0440,0x043E,0x043A,0x043E,0x0432),
+  combat: String.fromCharCode(0x0412,0x0020,0x0431,0x043E,0x0439),
+  editor: String.fromCharCode(0x0420,0x0435,0x0434,0x0430,0x043A,0x0442,0x043E,0x0440),
+  skillsEditor: String.fromCharCode(0x0420,0x0435,0x0434,0x0430,0x043A,0x0442,0x043E,0x0440,0x0020,0x043D,0x0430,0x0432,0x044B,0x043A,0x043E,0x0432),
+  notes: String.fromCharCode(0x0417,0x0430,0x043C,0x0435,0x0442,0x043A,0x0438,0x0020,0x0438,0x0433,0x0440,0x043E,0x043A,0x043E,0x0432),
+};
 
 const GmHubPage: React.FC = () => {
   return (
@@ -9,44 +19,53 @@ const GmHubPage: React.FC = () => {
       <header className="gm-hub-header">
         <div>
           <h1>GM Hub</h1>
-          <p>Инструменты для ведущего кампании.</p>
         </div>
-        <Link className="gm-hub-back" to="/" aria-label="Назад на главную">
+        <Link className="gm-hub-back" to="/" aria-label={T.backHome}>
           <i className="fa-solid fa-arrow-left-long" aria-hidden />
-          <span>Назад</span>
+          <span>{T.back}</span>
         </Link>
       </header>
 
       <main className="gm-hub-main">
         <div className="gm-hub-grid">
           <Link to="/player-sheets" className="gm-hub-card">
-            <span className="gm-hub-card__icon"><i className="fa-solid fa-users" /></span>
-            <span className="gm-hub-card__title">Листы игроков</span>
-            <span className="gm-hub-card__desc">Просматривайте и открывайте листы персонажей игроков.</span>
+            <div className="gm-hub-card-header">
+              <span className="gm-hub-card__title">{T.sheets}</span>
+              <span className="gm-hub-card__icon"><i className="fa-solid fa-users" /></span>
+            </div>
+            <span className="gm-hub-card__cta">{T.go} <i className="fa-solid fa-arrow-right-long" /></span>
           </Link>
 
           <Link to="/combat" className="gm-hub-card">
-            <span className="gm-hub-card__icon"><i className="fa-solid fa-crosshairs" /></span>
-            <span className="gm-hub-card__title">В бой!</span>
-            <span className="gm-hub-card__desc">Создайте бой с удобным трекером инициативы.</span>
+            <div className="gm-hub-card-header">
+              <span className="gm-hub-card__title">{T.combat}</span>
+              <span className="gm-hub-card__icon"><i className="fa-solid fa-crosshairs" /></span>
+            </div>
+            <span className="gm-hub-card__cta">{T.go} <i className="fa-solid fa-arrow-right-long" /></span>
           </Link>
 
           <Link to="/gm-editor" className="gm-hub-card">
-            <span className="gm-hub-card__icon"><i className="fa-solid fa-pen-to-square" /></span>
-            <span className="gm-hub-card__title">Редактор</span>
-            <span className="gm-hub-card__desc">Переход к редактору.</span>
+            <div className="gm-hub-card-header">
+              <span className="gm-hub-card__title">{T.editor}</span>
+              <span className="gm-hub-card__icon"><i className="fa-solid fa-pen-to-square" /></span>
+            </div>
+            <span className="gm-hub-card__cta">{T.go} <i className="fa-solid fa-arrow-right-long" /></span>
           </Link>
 
           <Link to="/gm-skills" className="gm-hub-card">
-            <span className="gm-hub-card__icon"><i className="fa-solid fa-wand-magic-sparkles" /></span>
-            <span className="gm-hub-card__title">Редактор навыков</span>
-            <span className="gm-hub-card__desc">Добавляйте, редактируйте и синхронизируйте все навыки для персонажей.</span>
+            <div className="gm-hub-card-header">
+              <span className="gm-hub-card__title">{T.skillsEditor}</span>
+              <span className="gm-hub-card__icon"><i className="fa-solid fa-wand-magic-sparkles" /></span>
+            </div>
+            <span className="gm-hub-card__cta">{T.go} <i className="fa-solid fa-arrow-right-long" /></span>
           </Link>
 
           <Link to="/gm-player-notes" className="gm-hub-card">
-            <span className="gm-hub-card__icon"><i className="fa-regular fa-note-sticky" /></span>
-            <span className="gm-hub-card__title">Заметки игроков</span>
-            <span className="gm-hub-card__desc">Просмотр заметок игроков (только для GM).</span>
+            <div className="gm-hub-card-header">
+              <span className="gm-hub-card__title">{T.notes}</span>
+              <span className="gm-hub-card__icon"><i className="fa-regular fa-note-sticky" /></span>
+            </div>
+            <span className="gm-hub-card__cta">{T.go} <i className="fa-solid fa-arrow-right-long" /></span>
           </Link>
         </div>
       </main>

@@ -1,7 +1,7 @@
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import type { SkillCatalogEntry, SkillAttackData, SkillCategory } from '../types/sheet';
+import type { SkillCatalogEntry, SkillAttackData, SkillCategory, SkillStatMod, SkillStatModTarget } from '../types/sheet';
 
 const readString = (value: unknown): string | undefined => {
   if (typeof value === 'string' && value.trim().length) {
@@ -60,6 +60,16 @@ const readTimestamp = (value: unknown, fallback: number): number => {
 
 const mapDocToSkill = (id: string, data: Record<string, unknown>): SkillCatalogEntry => {
   const now = Date.now();
+  const readStatMods = (value: unknown): SkillStatMod[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    const allowed: SkillStatModTarget[] = [
+      'strength','dexterity','intellect','constitution','charisma','perception','wisdom','luck','manaMax','healthMax','speed','ac'
+    ];
+    const mods = (value as any[])
+      .map((m) => ({ target: String((m as any)?.target ?? ''), delta: Number((m as any)?.delta) }))
+      .filter((m) => allowed.includes(m.target as SkillStatModTarget) && Number.isFinite(m.delta));
+    return mods.length ? mods as SkillStatMod[] : [];
+  };
   return {
     id,
     name: readString(data.name) ?? '���?����?��� �����',
@@ -76,6 +86,7 @@ const mapDocToSkill = (id: string, data: Record<string, unknown>): SkillCatalogE
     category: readCategory((data as any).category),
     hasAttack: readBool((data as any).hasAttack),
     attack: readAttack((data as any).attack),
+    statMods: readStatMods((data as any).statMods),
   };
 };
 

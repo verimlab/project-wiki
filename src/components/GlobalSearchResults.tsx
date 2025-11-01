@@ -45,3 +45,4 @@ const GlobalSearchResults: React.FC = () => {
 };
 
 export default GlobalSearchResults;
+

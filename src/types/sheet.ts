@@ -28,6 +28,26 @@ export type SkillAttackData = {
   effect: string;
 };
 
+// New: modifiers applied by a skill to character stats/derived values
+export type SkillStatModTarget =
+  | 'strength'
+  | 'dexterity'
+  | 'intellect'
+  | 'constitution'
+  | 'charisma'
+  | 'perception'
+  | 'wisdom'
+  | 'luck'
+  | 'manaMax'
+  | 'healthMax'
+  | 'speed'
+  | 'ac';
+
+export type SkillStatMod = {
+  target: SkillStatModTarget;
+  delta: number; // positive or negative
+};
+
 export type Skill = {
   id?: string;
   name: string;
@@ -46,6 +66,8 @@ export type Skill = {
   hasAttack?: boolean;
   attack?: SkillAttackData;
   category?: SkillCategory; // grouping in UI
+  // New: optional stat modifications this skill provides
+  statMods?: SkillStatMod[];
 };
 
 export type SkillCatalogEntry = Skill & { id: string };

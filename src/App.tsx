@@ -5,6 +5,7 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom'; 
 
 import TopBar from './components/TopBar';
+import { useAuth } from './components/AuthContext';
 
 // --- Твои страницы ---
 import HomePage from './components/HomePage';
@@ -35,7 +36,27 @@ import { SearchProvider } from './components/SearchContext';
 import GlobalSearchResults from './components/GlobalSearchResults';
 
 const App: React.FC = () => {
-  
+  const { loading, role } = useAuth();
+
+  if (loading && role === null) {
+    return (
+      <div className="hw-root">
+        <header className="hw-topbar">
+          <div className="hw-brand">
+            <span className="hw-brand-icon" aria-hidden>
+              <i className="fa-regular fa-gem" />
+            </span>
+            <span>Project Wiki</span>
+          </div>
+          <div style={{ marginLeft: 'auto', opacity: 0.8 }}>Загрузка…</div>
+        </header>
+        <main className="hw-main" style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}>
+          <div style={{ color: '#cfe6ff', opacity: 0.8 }}>Подготавливаем ваш профиль…</div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     // [ИСПРАВЛЕНО] ❗️ Оборачиваем только в SearchProvider
     <SearchProvider>

@@ -1,0 +1,1 @@
+  useEffect(() => {    // ... (этот useEffect без изменений)    const unsub = onAuthStateChanged(auth, (u) => setUserUid(u?.uid ?? null));    return () => unsub();  }, []);

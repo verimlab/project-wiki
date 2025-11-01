@@ -36,7 +36,8 @@
   width: min(1200px, 100%);
   display: grid;
   gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  justify-items: center; /* center tiles when track is wider than max */
   padding: 24px 0;
 }
 
@@ -44,12 +45,14 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  height: 250px;
+  justify-content: center; /* center content for title-only cards */
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 280px; /* larger tiles */
+  aspect-ratio: 1 / 1; /* square */
   border-radius: 18px;
   border: 1px solid var(--panel-border);
-  background-size: cover;
-  background-position: center;
   background-color: var(--bg-3);
   overflow: hidden;
   cursor: pointer;
@@ -64,18 +67,11 @@
 }
 
 .gp-issue-card-title {
-  padding: 14px 18px;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.7) 30%,
-    rgba(0, 0, 0, 0.9) 100%
-  );
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  padding: 0 18px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #eaf2ff;
 }
 
 /* Кнопка для GM */

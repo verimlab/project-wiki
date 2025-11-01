@@ -1306,3 +1306,20 @@
   gap: 12px;
 }
 }
+
+/* --- Стили для плашки бонуса --- */
+.stat-bonus-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #a5f3fc;
+  white-space: nowrap;
+}
+
+/* Исправляем отступ label, когда он внутри flex-контейнера */
+.cs-input-group div[style*="display: flex"] > label {
+  margin-bottom: 0 !important; 
+}

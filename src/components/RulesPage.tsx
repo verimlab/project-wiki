@@ -1,10 +1,8 @@
 // src/components/RulesPage.tsx
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import type { User } from 'firebase/auth';
-import { auth } from '../firebase';
+import { useAuth } from './AuthContext';
 import './RulesPage.css'; // Создадим его следующим шагом
 
 const rulesSectors = [
@@ -25,14 +23,7 @@ const rulesSectors = [
 ];
 
 const RulesPage: React.FC = () => {
-  const [, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      setUser(nextUser);
-    });
-    return () => unsubscribe();
-  }, []);
+  useAuth();
 
   return (
     <div className="hw-root">

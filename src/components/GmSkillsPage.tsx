@@ -8,7 +8,7 @@ import {
   skillDraftFromCatalog,
   type SkillEditorDraft as ImportedSkillEditorDraft,
 } from '../api/skills';
-import type { SkillCatalogEntry, SkillCategory } from '../types/sheet';
+import type { SkillCatalogEntry, SkillCategory, SkillStatMod, SkillStatModTarget } from '../types/sheet';
 import './GmSkillsPage.css';
 
 const NEW_ID = '__new';
@@ -28,6 +28,7 @@ type SkillEditorDraft = Omit<ImportedSkillEditorDraft, 'order' | 'branches'> & {
   hasAttack: boolean;
   attack: AttackDetails;
   category?: SkillCategory;
+  statMods?: SkillStatMod[];
 };
 
 const emptyAttackFields = (): AttackDetails => ({
@@ -51,6 +52,7 @@ const emptyDraft = (): SkillEditorDraft => ({
   category: 'misc',
   hasAttack: false,
   attack: emptyAttackFields(),
+  statMods: [],
 });
 
 const toKeywords = (value: string) =>
@@ -92,6 +94,9 @@ const mapJsonToDraft = (raw: Record<string, unknown>, fallbackOrder: number): Sk
       manaCost: typeof (raw.attack as AttackDetails).manaCost === 'string' ? (raw.attack as AttackDetails).manaCost : '',
       effect: typeof (raw.attack as AttackDetails).effect === 'string' ? (raw.attack as AttackDetails).effect : '',
     } : emptyAttackFields(),
+  statMods: Array.isArray((raw as any).statMods)
+    ? (raw as any).statMods.map((m: any) => ({ target: String(m?.target ?? 'wisdom') as SkillStatModTarget, delta: Number(m?.delta ?? 0) }))
+    : [],
 });
 
 const resolveIconClass = (icon?: string) => {
@@ -114,6 +119,29 @@ const GmSkillsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const updateStatMod = (index: number, patch: Partial<SkillStatMod>) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const list = [...(prev.statMods ?? [])];
+      const next = { ...(list[index] ?? { target: 'wisdom' as SkillStatModTarget, delta: 0 }), ...patch } as SkillStatMod;
+      list[index] = next;
+      return { ...prev, statMods: list };
+    });
+  };
+
+  const addStatMod = () => {
+    setDraft((prev) => prev ? { ...prev, statMods: [...(prev.statMods ?? []), { target: 'wisdom', delta: 1 }] } : prev);
+  };
+
+  const removeStatMod = (index: number) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const list = [...(prev.statMods ?? [])];
+      list.splice(index, 1);
+      return { ...prev, statMods: list };
+    });
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -476,17 +504,60 @@ const GmSkillsPage: React.FC = () => {
                 </div>
               )}
 
-              <label>
-                Описание
-                <textarea rows={4} value={draft.description || ''} onChange={(e) => updateDraft({ description: e.target.value })} placeholder="История, рекомендации, особенности" />
-              </label>
+              {/* Новое: модификаторы статов */
+              <><div className="gs-form-group-wrap">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+                    <strong>Изменяет характеристики</strong>
+                    <button type="button" className="gs-ghost-btn" onClick={addStatMod}>
+                      <i className="fa-solid fa-plus" /> Добавить модификатор
+                    </button>
+                  </div>
+                  {(draft.statMods ?? []).length === 0 && (
+                    <div className="gs-empty">Нет модификаторов</div>
+                  )}
+                  {(draft.statMods ?? []).map((mod, idx) => (
+                    <div key={idx} className="gs-form-grid">
+                      <label>
+                        Что меняется
+                        <select value={mod.target}
+                          onChange={(e) => updateStatMod(idx, { target: e.target.value as SkillStatModTarget })}>
+                          <option value="strength">Сила</option>
+                          <option value="dexterity">Ловкость</option>
+                          <option value="intellect">Интеллект</option>
+                          <option value="constitution">Телосложение</option>
+                          <option value="charisma">Харизма</option>
+                          <option value="perception">Восприятие</option>
+                          <option value="wisdom">Мудрость</option>
+                          <option value="luck">Удача</option>
+                          <option value="manaMax">Макс. мана</option>
+                          <option value="healthMax">Макс. хп</option>
+                          <option value="speed">Скорость</option>
+                          <option value="ac">Класс доспеха</option>
+                        </select>
+                      </label>
+                      <label>
+                        На сколько
+                        <input type="number" value={Number(mod.delta) || 0}
+                          onChange={(e) => updateStatMod(idx, { delta: Number(e.target.value) })} />
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'end' }}>
+                        <button type="button" className="gs-danger-btn" onClick={() => removeStatMod(idx)}>
+                          <i className="fa-solid fa-trash" /> Удалить
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div><label>
+                    Описание
+                    <textarea rows={4} value={draft.description || ''} onChange={(e) => updateDraft({ description: e.target.value })} placeholder="История, рекомендации, особенности" />
+                  </label><label>
+                    Ключевые слова (через запятую)
+                    <input value={keywordsValue} onChange={(e) => handleKeywordsChange(e.target.value)} placeholder="яд, ловкость, алхимия" />
+                  </label></>
+}
 
-              <label>
-                Ключевые слова (через запятую)
-                <input value={keywordsValue} onChange={(e) => handleKeywordsChange(e.target.value)} placeholder="яд, ловкость, алхимия" />
-              </label>
+              {/* --- [ИЗМЕНЕНО] --- */} {/* '}' expected. */}
 
-              {/* --- [ИЗМЕНЕНО] --- */}
               {/* Убрана обертка gs-form-grid-half и второе поле (Ветки) */}
               <label>
                 Перки (по одному на строку)

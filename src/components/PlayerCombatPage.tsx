@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
+//
 import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from './AuthContext';
 import './PlayerCombatPage.css';
 
 type Meta = { round: number; activeIndex: number; status: 'idle' | 'active' | 'ended' };
@@ -33,7 +34,8 @@ const PlayerCombatPage: React.FC = () => {
   const params = useParams();
   const combatId = params.combatId as string | undefined;
 
-  const [userUid, setUserUid] = useState<string | null>(null);
+  const { user } = useAuth();
+  const userUid = user?.uid ?? null;
   const [meta, setMeta] = useState<Meta>({ round: 1, activeIndex: 0, status: 'idle' });
   const [participants, setParticipants] = useState<Participant[]>([]);
 
@@ -124,7 +126,7 @@ const PlayerCombatPage: React.FC = () => {
   // auth
   useEffect(() => {
     // ... (этот useEffect без изменений)
-    const unsub = onAuthStateChanged(auth, (u) => setUserUid(u?.uid ?? null));
+    const unsub = (() => {}) as unknown as () => void;
     return () => unsub();
   }, []);
 

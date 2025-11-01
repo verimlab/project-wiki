@@ -1,14 +1,15 @@
-﻿// src/components/HomePage.tsx
+﻿﻿// src/components/HomePage.tsx
 
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { User } from 'firebase/auth';
+//
 // ↓ Убрал 'signOut' отсюда
-import { getIdTokenResult, onAuthStateChanged, signInWithPopup } from 'firebase/auth'; 
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+//
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Link, useSearchParams } from 'react-router-dom';
 import './HomePage.css';
-import { auth, db, googleProvider } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from './AuthContext';
 import { WEAPONS, ARMOR } from '../data/equipment';
 import type { Article } from '../types/lore';
 import { buildDefaultArticles } from '../data/loreDefaults';
@@ -62,7 +63,7 @@ const HomePage: React.FC = () => {
   const [diceConfig, setDiceConfig] = useState<Record<number, number>>(buildInitialDiceConfig);
   const [results, setResults] = useState<DiceResultGroup[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const { user, role, signIn } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ const HomePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   
-  const [role, setRole] = useState<'gm' | 'player' | null>(null);
+  // роль берём из AuthContext
   const [isMigrationModalOpen, setMigrationModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
@@ -216,38 +217,8 @@ const HomePage: React.FC = () => {
     if (suppressionFlag !== 'hidden') {
       setMigrationModalOpen(true);
     }
-    const unsubscribe = onAuthStateChanged(auth, async (nextUser) => {
-      setUser(nextUser);
-      if (!nextUser) {
-        setRole(null);
-        return;
-      }
-
-      const resolveRole = async () => {
-        try {
-          const tokenResult = await getIdTokenResult(nextUser, true);
-          const claimRole = tokenResult.claims.role;
-          if (claimRole === 'gm' || claimRole === 'player') {
-            return claimRole as 'gm' | 'player';
-          }
-
-          const userDoc = await getDoc(doc(db, 'users', nextUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data() as { role?: unknown };
-            if (data.role === 'gm' || data.role === 'player') {
-              return data.role;
-            }
-          }
-        } catch (tokenError) {
-          console.error(tokenError);
-        }
-        return 'player' as const;
-      };
-
-      const resolved = await resolveRole();
-      setRole(resolved);
-    });
-    return () => unsubscribe();
+    // авторизация и роль обрабатываются в AuthContext
+    return () => {};
   }, []);
 
   const total = useMemo(() => {
@@ -334,7 +305,7 @@ const HomePage: React.FC = () => {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signIn();
       setIsAuthModalOpen(false);
     } catch (signInError) {
       setAuthError('Не удалось выполнить вход. Попробуйте ещё раз.');

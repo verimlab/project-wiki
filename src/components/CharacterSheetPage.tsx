@@ -429,18 +429,40 @@ const CharacterSheetPage: React.FC = () => {
     };
   }, [catalogLoading, skillCatalog.length]);
 
+  // Skill-based stat modifiers (from learned skills)
+  const skillStatModTotals = useMemo(() => {
+    const owned = new Set((skills || []).map((s) => (s?.name || '').toLowerCase().trim()).filter(Boolean));
+    const totals: Record<string, number> = {};
+    (skillCatalog || []).forEach((c) => {
+      const name = (c?.name || '').toLowerCase().trim();
+      if (!owned.has(name)) return;
+      const mods = (c as any)?.statMods as Array<{ target?: string; delta?: number }> | undefined;
+      if (!Array.isArray(mods)) return;
+      mods.forEach((m) => {
+        const t = String(m?.target || '');
+        const d = Number(m?.delta);
+        if (!t || !Number.isFinite(d)) return;
+        totals[t] = (totals[t] || 0) + d;
+      });
+    });
+    return totals;
+  }, [skills, skillCatalog]);
+
+  // Effective derived values with modifiers
+  const effectiveHealthMax = useMemo(() => Number(healthMax || 0) + (skillStatModTotals.healthMax || 0), [healthMax, skillStatModTotals]);
+  const effectiveManaMax = useMemo(() => Number(manaMax || 0) + (skillStatModTotals.manaMax || 0), [manaMax, skillStatModTotals]);
 // Derived bars
   // ... (без изменений)
   const healthPct = useMemo(() => {
     const cur = Number(healthCurrent || 0);
-    const max = Math.max(1, Number(healthMax || 1));
+    const max = Math.max(1, Number(effectiveHealthMax || healthMax || 1));
     return Math.max(0, Math.min(100, Math.round((cur / max) * 100)));
-  }, [healthCurrent, healthMax]);
+  }, [healthCurrent, healthMax, effectiveHealthMax]);
   const manaPct = useMemo(() => {
     const cur = Number(manaCurrent || 0);
-    const max = Math.max(1, Number(manaMax || 1));
+    const max = Math.max(1, Number(effectiveManaMax || manaMax || 1));
     return Math.max(0, Math.min(100, Math.round((cur / max) * 100)));
-  }, [manaCurrent, manaMax]);
+  }, [manaCurrent, manaMax, effectiveManaMax]);
   const expPct = useMemo(() => {
     const cur = Number(expCurrent || 0);
     const max = Math.max(1, Number(expMax || 1));
@@ -819,8 +841,9 @@ const CharacterSheetPage: React.FC = () => {
   // НОВОЕ: Расчет пассивной внимательности
   const passivePerception = useMemo(() => {
     const perceptionScore = stats.perception.filter(Boolean).length;
-    return 10 + perceptionScore;
-  }, [stats.perception]);
+    const bonus = (skillStatModTotals as any)?.perception || 0;
+    return 10 + perceptionScore + bonus;
+  }, [stats.perception, skillStatModTotals]);
 
   // НОВОЕ: Кнопка "Подтвердить"
   function confirmStatChanges() {
@@ -1109,10 +1132,11 @@ const CharacterSheetPage: React.FC = () => {
   }, [items]);
 
   const maxWeight = useMemo(() => {
-    const strengthScore = stats.strength.filter(Boolean).length;
-    const constitutionScore = stats.constitution.filter(Boolean).length;
+    const getLevel = (k: StatKey) => (stats[k].filter(Boolean).length) + ((skillStatModTotals as any)[k] || 0);
+    const strengthScore = getLevel('strength');
+    const constitutionScore = getLevel('constitution');
     return 25 + (strengthScore * 15) + (constitutionScore * 15);
-  }, [stats.strength, stats.constitution]);
+  }, [stats.strength, stats.constitution, skillStatModTotals]);
   // reference to keep earlier variable from being treated as unused
 
   // Атаки из навыков с учётом каталога (если в листе навык без актуальных полей)
@@ -1200,28 +1224,64 @@ const CharacterSheetPage: React.FC = () => {
                 <label htmlFor="cs-race">Раса</label>
                 <input id="cs-race" type="text" placeholder="Race" value={race} onChange={(e) => setRace(e.target.value)} />
               </div>
+
               <div className="cs-input-group">
-                <span className="cs-input-icon" aria-hidden><i className="fa-solid fa-shoe-prints" /></span>
+              <span className="cs-input-icon" aria-hidden><i className="fa-solid fa-shoe-prints" /></span>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: 2 }}>
                 <label htmlFor="cs-speed">Скорость</label>
-                <div className="cs-number-input-wrapper">
-                  <input id="cs-speed" type="number" min={0} placeholder="30" value={String(speed)} onChange={(e) => setSpeed(e.target.value === '' ? '' : Number(e.target.value))} />
-                  <div className="cs-number-input-arrows">
-                    <button type="button" onClick={() => setSpeed(s => Number(s || 0) + 1)} aria-label="Увеличить скорость"><i className="fa-solid fa-caret-up"></i></button>
-                    <button type="button" onClick={() => setSpeed(s => Math.max(0, Number(s || 0) - 1))} aria-label="Уменьшить скорость"><i className="fa-solid fa-caret-down"></i></button>
-                  </div>
+                
+                {!!skillStatModTotals.speed && (
+                  <span className="stat-bonus-badge">
+                    {skillStatModTotals.speed > 0 ? '+' : ''}{skillStatModTotals.speed}
+                  </span>
+                )}
+              </div>
+
+              <div className="cs-number-input-wrapper" style={{ gridColumn: 2 }}>
+                <input 
+                  id="cs-speed" 
+                  type="number" 
+                  min={0} 
+                  placeholder="30" 
+                  value={String(speed)}
+                  onChange={(e) => setSpeed(e.target.value === '' ? '' : Number(e.target.value))}
+                />
+                <div className="cs-number-input-arrows">
+                  <button type="button" onClick={() => setSpeed(s => Number(s || 0) + 1)} aria-label="Увеличить скорость"><i className="fa-solid fa-caret-up"></i></button>
+                  <button type="button" onClick={() => setSpeed(s => Math.max(0, Number(s || 0) - 1))} aria-label="Уменьшить скорость"><i className="fa-solid fa-caret-down"></i></button>
                 </div>
               </div>
+              </div>
+
               <div className="cs-input-group">
-                <span className="cs-input-icon" aria-hidden><i className="fa-solid fa-shield" /></span>
+              <span className="cs-input-icon" aria-hidden><i className="fa-solid fa-shield" /></span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: 2 }}>
                 <label htmlFor="cs-ac">КД</label>
-                <div className="cs-number-input-wrapper">
-                  <input id="cs-ac" type="number" min={0} placeholder="10" value={String(ac)} onChange={(e) => setAc(e.target.value === '' ? '' : Number(e.target.value))} />
-                  <div className="cs-number-input-arrows">
-                    <button type="button" onClick={() => setAc(s => Number(s || 0) + 1)} aria-label="Увеличить КД"><i className="fa-solid fa-caret-up"></i></button>
-                    <button type="button" onClick={() => setAc(s => Math.max(0, Number(s || 0) - 1))} aria-label="Уменьшить КД"><i className="fa-solid fa-caret-down"></i></button>
-                  </div>
+                
+                {!!skillStatModTotals.ac && (
+                  <span className="stat-bonus-badge">
+                    {skillStatModTotals.ac > 0 ? '+' : ''}{skillStatModTotals.ac}
+                  </span>
+                )}
+              </div>
+
+              <div className="cs-number-input-wrapper" style={{ gridColumn: 2 }}>
+                <input 
+                  id="cs-ac" 
+                  type="number" 
+                  min={0} 
+                  placeholder="10" 
+                  value={String(ac)}
+                  onChange={(e) => setAc(e.target.value === '' ? '' : Number(e.target.value))}
+                />
+                <div className="cs-number-input-arrows">
+                  <button type="button" onClick={() => setAc(s => Number(s || 0) + 1)} aria-label="Увеличить КД"><i className="fa-solid fa-caret-up"></i></button>
+                  <button type="button" onClick={() => setAc(s => Math.max(0, Number(s || 0) - 1))} aria-label="Уменьшить КД"><i className="fa-solid fa-caret-down"></i></button>
                 </div>
               </div>
+            </div>
               <div className="cs-progress-card">
                 <div className="cs-progress-title"><i className="fa-solid fa-bars-progress" /> Опыт</div>
                 <div className="cs-progress-inputs">
@@ -1269,11 +1329,22 @@ const CharacterSheetPage: React.FC = () => {
                   </div>
                   <span>/</span>
                   <div className="cs-number-input-wrapper">
-                    <input type="number" min={1} placeholder="100" value={String(healthMax)} onChange={(e) => setHealthMax(e.target.value === '' ? '' : Number(e.target.value))} />
+                  <input 
+                    type="number" 
+                    min={1} 
+                    placeholder="100" 
+                    value={String(effectiveHealthMax)}
+                    onChange={(e) => {
+                      const raw = e.target.value === '' ? '' : Number(e.target.value);
+                      if (raw === '') { setHealthMax(''); return; }
+                      const base = Number(raw) - Number(skillStatModTotals.healthMax || 0);
+                      setHealthMax(base < 1 ? 1 : base);
+                    }} 
+                  />
                     <div className="cs-number-input-arrows">
                       <button type="button" onClick={() => setHealthMax(s => Number(s || 0) + 1)} aria-label="Увеличить максимальное здоровье"><i className="fa-solid fa-caret-up"></i></button>
                       <button type="button" onClick={() => setHealthMax(s => Math.max(1, Number(s || 0) - 1))} aria-label="Уменьшить максимальное здоровье"><i className="fa-solid fa-caret-down"></i></button>
-                    </div>
+                  </div>
                   </div>
                 </div>
                 <div className="cs-progress-bar"><div className={`cs-progress-filled is-health ${getHealthClass(healthPct)}`} style={{ width: `${healthPct}%` }} /></div>
@@ -1304,14 +1375,25 @@ const CharacterSheetPage: React.FC = () => {
                     </div>
                     <span>/</span>
                     <div className="cs-number-input-wrapper">
-                      <input type="number" min={1} placeholder="30" value={String(manaMax)} onChange={(e) => setManaMax(e.target.value === '' ? '' : Number(e.target.value))} />
+                      <input 
+                        type="number" 
+                        min={1} 
+                        placeholder="30" 
+                        value={String(effectiveManaMax)}
+                        onChange={(e) => {
+                          const raw = e.target.value === '' ? '' : Number(e.target.value);
+                          if (raw === '') { setManaMax(''); return; }
+                          const base = Number(raw) - Number(skillStatModTotals.manaMax || 0);
+                          setManaMax(base < 1 ? 1 : base);
+                        }}
+                      />
                       <div className="cs-number-input-arrows">
                         <button type="button" onClick={() => setManaMax(s => Number(s || 0) + 1)} aria-label="Увеличить максимальную ману"><i className="fa-solid fa-caret-up"></i></button>
                         <button type="button" onClick={() => setManaMax(s => Math.max(1, Number(s || 0) - 1))} aria-label="Уменьшить максимальную ману"><i className="fa-solid fa-caret-down"></i></button>
-                      </div>
-                    </div>
                   </div>
-                  <div className="cs-progress-bar"><div className="cs-progress-filled is-mana" style={{ width: `${manaPct}%` }} /></div>
+                  </div>
+                </div>
+                <div className="cs-progress-bar"><div className="cs-progress-filled is-mana" style={{ width: `${manaPct}%` }} /></div>
                   <div className="cs-progress-value">{manaPct}%</div>
                 </div>
               )}
@@ -1390,6 +1472,11 @@ const CharacterSheetPage: React.FC = () => {
                         <div className="cs-stat-header">
                           <span className="cs-stat-icon" aria-hidden><i className={m.icon} /></span>
                           <span className="cs-stat-label">{m.label}</span>
+                          {!!(skillStatModTotals as any)[m.key] && (
+                            <span style={{ marginLeft: 8, fontSize: 12, color: '#a5f3fc', background: 'rgba(59,130,246,.2)', border: '1px solid rgba(59,130,246,.4)', padding: '2px 8px', borderRadius: 999 }}>
+                              {((skillStatModTotals as any)[m.key] > 0 ? '+' : '') + (skillStatModTotals as any)[m.key]}
+                            </span>
+                          )}
                         </div>
                         <div className="cs-stat-levels">
                           {LEVELS.map((lvl, idx) => {
@@ -1397,14 +1484,17 @@ const CharacterSheetPage: React.FC = () => {
                             const permanent = !!stats[m.key][idx];
                             // `pending` - это то, что выбрано в UI (может быть permanent ИЛИ новое)
                             const pending = !!pendingStats[m.key][idx];
-                            
+                            const baseCount = stats[m.key].filter(Boolean).length;
+                            const bonus = Number(((skillStatModTotals as any)[m.key]) || 0);
+                            const bonusActive = idx >= baseCount && idx < baseCount + Math.max(0, bonus);
+
                             return (
                               <button
                                 key={lvl}
                                 type="button"
                                 className={`
                                   cs-level-btn
-                                  ${pending ? ' is-active' : ''}
+                                  ${(pending || permanent || bonusActive) ? ' is-active' : ''}
                                   ${pending && !permanent ? ' is-pending' : ''}
                                   ${permanent ? ' is-permanent' : ''}
                                 `}
@@ -1413,7 +1503,7 @@ const CharacterSheetPage: React.FC = () => {
                                 aria-pressed={pending}
                                 aria-label={`${m.label}: level ${lvl}`}
                                 // Запрещаем клик, если очко уже вкачано (на всякий случай)
-                                disabled={permanent && !pending}
+                                disabled={(permanent && !pending) || bonusActive}
                               >
                                 <span />
                               </button>
@@ -1665,7 +1755,7 @@ const CharacterSheetPage: React.FC = () => {
             <button type="button" className="perks-modal__close" onClick={closeInventory} aria-label="Close">
               <i className="fa-solid fa-xmark" />
             </button>
-            <div className="perks-modal__header" style={{ justifyContent: 'space-between', width: '100%' }}>
+            <div className="perks-modal__header" style={{ justifyContent: 'space-between', width: '100%', paddingRight: '60px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                 <h3 className="perks-modal__title"><i className="fa-solid fa-backpack" /> Инвентарь</h3>
                 {inventoryView === 'list' && (
@@ -2135,8 +2225,3 @@ const CharacterSheetPage: React.FC = () => {
 };
 
 export default CharacterSheetPage;
-
-
-
-
-

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import type { CharacterSheet } from '../types/sheet';
 import { STAT_META } from '../constants';
 import type { StatKey } from '../types/sheet';
@@ -29,9 +29,9 @@ const PlayerSheetModal: React.FC<PlayerSheetModalProps> = ({ sheet, onClose }) =
       <div className="sheet-modal" onClick={(e) => e.stopPropagation()}>
         <header className="sheet-modal-header">
           <div>
-            <h2>{sheet.name || 'Безымянный'}</h2>
+            <h2>{sheet.name || '—'}</h2>
             <p>
-              {sheet.race || 'Раса не указана'}, Уровень {sheet.charLevel || 1}
+              {sheet.race || '—'}, уровень {sheet.charLevel || 1}
             </p>
           </div>
           <button className="sheet-modal-close" onClick={onClose} aria-label="Закрыть">
@@ -50,12 +50,11 @@ const PlayerSheetModal: React.FC<PlayerSheetModalProps> = ({ sheet, onClose }) =
           </section>
 
           <section>
-            <h3><i className="fa-solid fa-person-running" /> Базовые</h3>
+            <h3><i className="fa-solid fa-person-running" /> Основное</h3>
             <div className="sheet-modal-stats">
               <div className="sheet-modal-stat"><span className="sheet-modal-stat__label">Уровень</span><span className="sheet-modal-stat__value">{fmtNum(sheet.charLevel)}</span></div>
               <div className="sheet-modal-stat"><span className="sheet-modal-stat__label">Скорость</span><span className="sheet-modal-stat__value">{fmtNum(sheet.speed)}</span></div>
               <div className="sheet-modal-stat"><span className="sheet-modal-stat__label">Класс брони</span><span className="sheet-modal-stat__value">{fmtNum(sheet.ac)}</span></div>
-              <div className="sheet-modal-stat"><span className="sheet-modal-stat__label">Тип</span><span className="sheet-modal-stat__value">{fmtText(sheet.type)}</span></div>
               <div className="sheet-modal-stat"><span className="sheet-modal-stat__label">Возраст</span><span className="sheet-modal-stat__value">{fmtText(sheet.age)}</span></div>
             </div>
           </section>
@@ -99,13 +98,6 @@ const PlayerSheetModal: React.FC<PlayerSheetModalProps> = ({ sheet, onClose }) =
               <p>Инвентарь пуст.</p>
             )}
           </section>
-
-          {sheet.notes && (
-            <section>
-              <h3><i className="fa-solid fa-note-sticky" /> Заметки</h3>
-              <p className="sheet-modal-notes">{sheet.notes}</p>
-            </section>
-          )}
         </div>
       </div>
     </div>
