@@ -1,7 +1,8 @@
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import type { SkillCatalogEntry, SkillAttackData, SkillCategory, SkillStatMod, SkillStatModTarget } from '../types/sheet';
+import type { SkillCatalogEntry, SkillAttackData, SkillStatMod, SkillStatModTarget } from '../types/sheet';
+import { SKILL_CATEGORY_VALUES, type SkillCategory } from '../types/sheet';
 
 const readString = (value: unknown): string | undefined => {
   if (typeof value === 'string' && value.trim().length) {
@@ -44,8 +45,7 @@ const readAttack = (value: unknown): SkillAttackData | undefined => {
 
 const readCategory = (value: unknown): SkillCategory | undefined => {
   if (typeof value !== 'string') return undefined;
-  const allowed: SkillCategory[] = ['proficiency', 'magic', 'passive', 'misc'];
-  return (allowed as string[]).includes(value) ? (value as SkillCategory) : undefined;
+  return (SKILL_CATEGORY_VALUES as string[]).includes(value) ? (value as SkillCategory) : undefined;
 };
 
 const readTimestamp = (value: unknown, fallback: number): number => {
@@ -78,6 +78,7 @@ const mapDocToSkill = (id: string, data: Record<string, unknown>): SkillCatalogE
     requiredExp: readNumber(data.requiredExp),
     perks: readArray(data.perks),
     keywords: readArray(data.keywords),
+    aspects: readArray((data as any).aspects),
     rank: readString(data.rank),
     order: readNumber(data.order),
     createdAt: readTimestamp(data.createdAt, now),
@@ -86,6 +87,7 @@ const mapDocToSkill = (id: string, data: Record<string, unknown>): SkillCatalogE
     category: readCategory((data as any).category),
     hasAttack: readBool((data as any).hasAttack),
     attack: readAttack((data as any).attack),
+    manaCost: readString((data as any).manaCost),
     statMods: readStatMods((data as any).statMods),
   };
 };

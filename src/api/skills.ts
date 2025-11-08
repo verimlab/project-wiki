@@ -1,7 +1,7 @@
-﻿import { collection, deleteDoc, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, deleteDoc, doc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 // [ИСПРАВЛЕНО] 1. Импортируем *настоящие* типы
-import type { SkillCatalogEntry, SkillBranch, SkillCategory, SkillStatMod, SkillStatModTarget } from '../types/sheet'; 
+import { SKILL_CATEGORY_VALUES, type SkillCatalogEntry, type SkillBranch, type SkillCategory, type SkillStatMod, type SkillStatModTarget } from '../types/sheet'; 
 import { createId } from '../utils/id';
 
 type AttackDetails = {
@@ -25,17 +25,20 @@ export type SkillEditorDraft = {
   requiredExp?: number;
   keywords?: string[];
   perks?: string[];
+  aspects?: string[];
   branches?: string[]; // 👈 string[] (для формы)
   rank?: string;
   order?: number;
   createdAt?: number;
   category?: SkillCategory;
+  manaCost?: string;
   hasAttack?: boolean;
   attack?: AttackDetails;
   statMods?: SkillStatMod[];
 };
 
 const collectionRef = collection(db, 'skillsCatalog');
+const ALLOWED_CATEGORIES = SKILL_CATEGORY_VALUES;
 
 const normalizeArray = (value?: string[], toLower = false): string[] => {
   if (!Array.isArray(value)) return [];
@@ -56,6 +59,7 @@ const buildPayload = (input: SkillEditorDraft, now: number) => {
     requiredExp: typeof input.requiredExp === 'number' && !Number.isNaN(input.requiredExp) ? input.requiredExp : 100,
     keywords: normalizeArray(input.keywords),
     perks: normalizeArray(input.perks),
+    aspects: normalizeArray(input.aspects),
     
     // [ИСПРАВЛЕНО] 3. Конвертируем string[] (из формы) в SkillBranch[] (для Firebase)
     //    Предполагаем, что у SkillBranch есть поле `name`
@@ -79,10 +83,15 @@ const buildPayload = (input: SkillEditorDraft, now: number) => {
     if (rank) payload.rank = rank;
     else payload.rank = null;
   }
+  if (typeof input.manaCost === 'string') {
+    const mana = input.manaCost.trim();
+    payload.manaCost = mana.length ? mana : null;
+  } else {
+    payload.manaCost = null;
+  }
   if (typeof input.category === 'string') {
-    const allowed: SkillCategory[] = ['proficiency', 'magic', 'passive', 'misc'];
     const value = input.category as SkillCategory;
-    payload.category = allowed.includes(value) ? value : 'misc';
+    payload.category = ALLOWED_CATEGORIES.includes(value) ? value : 'misc';
   }
   
   payload.hasAttack = typeof input.hasAttack === 'boolean' ? input.hasAttack : false;
@@ -174,7 +183,9 @@ export const skillDraftFromCatalog = (entry: SkillCatalogEntry): SkillEditorDraf
   order: entry.order,
   createdAt: entry.createdAt,
   category: entry.category,
+  manaCost: entry.manaCost,
   hasAttack: entry.hasAttack,
   attack: entry.attack,
   statMods: Array.isArray((entry as any).statMods) ? (entry as any).statMods as SkillStatMod[] : [],
+  aspects: normalizeArray(entry.aspects),
 });

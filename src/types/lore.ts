@@ -18,6 +18,8 @@ export interface Article {
   baseStats?: BaseStats; // Для 'races'
   ac?: string;           // Для 'creatures'
   attacks?: string;      // Для 'creatures'
+  skillProficiencies?: string[]; // Владения навыками (для существ)
+  category?: string;     // Группа существа
   // --------------------------
 }
 

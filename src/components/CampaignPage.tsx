@@ -6,6 +6,13 @@ import { useRole } from '../hooks/useRole';
 import './CampaignPage.css';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
+const formatDateTime = (ms: number) => new Date(ms).toLocaleString('ru-RU', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 // Type for data as it exists in Firestore (before client-side conversion)
 type EpisodeDocData = {
@@ -450,11 +457,15 @@ const CampaignPage: React.FC = () => {
           <ul className="camp-episode-list">
             {episodes.map((episode) => (
               <li key={episode.id} className="camp-episode-item">
-                <button type="button" onClick={() => openEpisodeModal(episode)}>
-                  Эпизод #{episode.order}: {episode.title}
+                <button type="button" className="camp-episode-button" onClick={() => openEpisodeModal(episode)}>
+                  <div className="camp-episode-main">
+                    <span className="camp-episode-badge">#{episode.order}</span>
+                    <span className="camp-episode-title">{episode.title}</span>
+                  </div>
+                  <div className="camp-episode-meta">Обновлено: {formatDateTime(episode.updatedAt)}</div>
                 </button>
                 {role === 'gm' && (
-                  <button type="button" className="camp-episode-edit-btn" onClick={() => openEpisodeModal(episode, true)}>
+                  <button type="button" className="camp-episode-edit-btn" aria-label="Редактировать эпизод" onClick={() => openEpisodeModal(episode, true)}>
                     <i className="fa-solid fa-pencil" />
                   </button>
                 )}
@@ -466,9 +477,14 @@ const CampaignPage: React.FC = () => {
 
       {isEpisodeModalOpen && selectedEpisode && (
         <div className="camp-modal-backdrop" role="presentation" onClick={closeEpisodeModal}>
-          <div className="camp-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+          <div className="camp-modal camp-modal--glass" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <header className="camp-modal-header">
-              <h2>{isEditingEpisode ? 'Редактировать эпизод' : selectedEpisode.title}</h2>
+              <div>
+                <h2><i className="fa-solid fa-scroll" /> {isEditingEpisode ? 'Редактировать эпизод' : selectedEpisode.title}</h2>
+                {!isEditingEpisode && (
+                  <div className="camp-modal-subtitle">Эпизод #{selectedEpisode.order} • Обновлено {formatDateTime(selectedEpisode.updatedAt)}</div>
+                )}
+              </div>
               <button type="button" className="camp-modal-close" onClick={closeEpisodeModal} aria-label="Закрыть">
                 <i className="fa-solid fa-xmark" />
               </button>
@@ -535,9 +551,9 @@ const CampaignPage: React.FC = () => {
       )}
       {isEpisodeModalOpen && !selectedEpisode && isEditingEpisode && ( // Modal for adding new episode
         <div className="camp-modal-backdrop" role="presentation" onClick={closeEpisodeModal}>
-          <div className="camp-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+          <div className="camp-modal camp-modal--glass" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <header className="camp-modal-header">
-              <h2>Добавить новый эпизод</h2>
+              <h2><i className="fa-solid fa-scroll" /> Добавить новый эпизод</h2>
               <button type="button" className="camp-modal-close" onClick={closeEpisodeModal} aria-label="Закрыть">
                 <i className="fa-solid fa-xmark" />
               </button>

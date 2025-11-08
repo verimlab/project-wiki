@@ -7,7 +7,7 @@ import type { Article as ImportedArticle, SectionId } from '../types/lore';
 import { SECTION_BY_ID } from '../constants/loreSections';
 import './LoreSectionPage.css';
 
-type Article = ImportedArticle & { category?: string };
+type Article = ImportedArticle & { category?: string; skillProficiencies?: string[] };
 
 const STATS_MAP = [
   { key: 'str', label: 'Сила', icon: 'fa-solid fa-hand-fist' },
@@ -37,6 +37,18 @@ const LoreSectionPage: React.FC = () => {
     const raw = (articles[sectionId] ?? []) as Article[];
     return raw.slice().sort((a, b) => a.title.localeCompare(b.title, 'ru'));
   }, [articles, sectionId]);
+
+  const creatureGroups = useMemo(() => {
+    if (sectionId !== 'creatures') return [];
+    const map = new Map<string, Article[]>();
+    list.forEach((article) => {
+      const key = article.category?.trim() || 'Без категории';
+      const bucket = map.get(key) ?? [];
+      bucket.push(article);
+      map.set(key, bucket);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+  }, [list, sectionId]);
 
   useEffect(() => {
     if (!(loaded || !liveLoading)) return;
@@ -96,15 +108,38 @@ const LoreSectionPage: React.FC = () => {
         </div>
       </header>
 
-      <div className="lore-grid">
-        {list.map(renderArticleCard)}
-        {list.length === 0 && (
+      {sectionId === 'creatures' ? (
+        creatureGroups.length ? (
+          creatureGroups.map(([categoryLabel, items]) => (
+            <section key={categoryLabel} className="lore-category-block">
+              <div className="lore-category-header">
+                <div className="lore-category-pill">
+                  <i className="fa-solid fa-layer-group" />
+                  {categoryLabel}
+                </div>
+              </div>
+              <div className="lore-grid">
+                {items.map(renderArticleCard)}
+              </div>
+            </section>
+          ))
+        ) : (
           <div className="lore-placeholder" style={{ gridColumn: '1 / -1' }}>
             <i className="fa-solid fa-wand-magic-sparkles" />
             <p>{!(loaded && !liveLoading) ? 'Загрузка статей…' : 'Пока пусто. Добавьте в редакторе.'}</p>
           </div>
-        )}
-      </div>
+        )
+      ) : (
+        <div className="lore-grid">
+          {list.map(renderArticleCard)}
+          {list.length === 0 && (
+            <div className="lore-placeholder" style={{ gridColumn: '1 / -1' }}>
+              <i className="fa-solid fa-wand-magic-sparkles" />
+              <p>{!(loaded && !liveLoading) ? 'Загрузка статей…' : 'Пока пусто. Добавьте в редакторе.'}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {modalArticle && (
         <div className="lore-modal-backdrop" onClick={() => setModalArticle(null)}>

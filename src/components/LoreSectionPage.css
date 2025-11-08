@@ -42,6 +42,9 @@
 
 
 .lore-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;align-items:start}
+.lore-category-block{display:flex;flex-direction:column;gap:16px;margin-bottom:36px}
+.lore-category-header{display:flex;align-items:center;justify-content:flex-start;gap:14px;flex-wrap:wrap}
+.lore-category-pill{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;background:rgba(120,160,255,.12);border:1px solid rgba(120,160,255,.35);color:#f3f4ff;font-size:16px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
 .lore-card{width:100%;border:1px solid rgba(120,160,255,.15);border-radius:14px;background:linear-gradient(165deg,rgba(11,18,36,.78),rgba(10,16,34,.66));/* removed blur to avoid edge artifact */background-clip: padding-box;box-shadow:0 8px 18px rgba(0,0,0,.32);transition:transform .18s ease, border .18s ease, box-shadow .18s ease;overflow:hidden;position:relative;will-change: transform;transform: translateZ(0)}
 .lore-card.is-expanded{transform:scale(1.01);grid-column:auto}
 .lore-card:hover{transform:translateY(-3px);border-color:rgba(130,170,255,.45);box-shadow:0 16px 36px rgba(0,0,0,.45)}
@@ -111,21 +114,7 @@
 .lore-card-content blockquote{border-left:3px solid rgba(130,170,255,.6);padding-left:12px;margin:12px 0;color:rgba(230,235,255,.85);font-style:italic;background:rgba(255,255,255,.03);border-radius:8px}
 
 /* --- [РќРћР’Р«Р™ РЎРўРР›Р¬] --- */
-.lore-category-heading {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: rgba(220, 230, 255, 0.75);
-  margin: 24px 0 0 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(120, 160, 255, .15);
-}
-
-.lore-category-heading:first-of-type {
-  margin-top: 0;
-}
+/* legacy category heading removed */
 /* --- [РљРћРќР•Р¦ РќРћР’РћР“Рћ РЎРўРР›РЇ] --- */
 
 /* Modal */
@@ -144,3 +133,7 @@
 .lore-card .lore-card-meta strong{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 
+
+.lore-skill-list{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+.lore-skill-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(255,215,120,.2);border:1px solid rgba(255,215,120,.35);color:rgba(255,235,190,.92);font-size:12px}
+.lore-skill-chip .fa-solid{color:#ffd369}

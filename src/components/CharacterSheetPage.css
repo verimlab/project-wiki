@@ -564,6 +564,9 @@
 .skills-suggest__icon { color: #63b3ff; }
 .skills-suggest__name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .skills-suggest__rank { font-size: 0.75rem; padding: 0 8px; border-radius: 999px; background: rgba(130, 170, 255, 0.2); color: #fefefe; text-transform: uppercase; letter-spacing: 0.5px; }
+.skills-suggest__meta { margin-top: 6px; font-size: 0.8rem; color: rgba(200, 235, 255, 0.75); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.skills-suggest__meta-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; background: rgba(120, 160, 255, 0.12); color: inherit; }
+.skills-suggest__meta-chip .fa-solid { color: #7dd3ff; }
 
 /* --- Skills Redesign --- */
 .cs-skills .skills-list { display: flex; flex-direction: column; gap: 18px; }
@@ -577,13 +580,44 @@
   flex-direction: column;
   gap: 14px;
 }
+.skill-item--favorite {
+  border-color: rgba(255, 215, 120, 0.55);
+  box-shadow: 0 18px 36px rgba(255, 198, 92, 0.18);
+}
 .skill-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .skill-name-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .skill-name { color: #eaf2ff; font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
 .skill-name .fa-solid { color: #82aaff; min-width: 24px; text-align: center; }
+.skill-favorite-indicator { color: #ffd369; font-size: 0.9rem; pointer-events: none; }
 .skill-rank-chip { font-size: 0.8rem; padding: 2px 10px; border-radius: 999px; background: rgba(130, 170, 255, 0.18); color: #fefefe; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }
 .skill-desc { font-size: 0.9rem; color: rgba(220, 230, 255, 0.75); font-weight: 400; margin-top: 6px; }
+.skill-meta { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+.skill-meta__chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(120, 170, 255, 0.12); font-size: 0.85rem; color: rgba(190, 225, 255, 0.85); }
+.skill-meta__chip .fa-solid { color: #7dd3ff; }
 .skill-actions { display: flex; gap: 8px; }
+.skill-actions .skill-favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 215, 120, 0.45);
+  background: rgba(255, 215, 120, 0.15);
+  color: rgba(255, 215, 120, 0.85);
+  font-size: 14px;
+}
+.skill-actions .skill-favorite-btn:hover {
+  background: rgba(255, 215, 120, 0.25);
+  border-color: rgba(255, 215, 120, 0.6);
+  color: rgba(255, 235, 180, 0.95);
+}
+.skill-actions .skill-favorite-btn.is-active {
+  background: rgba(255, 215, 120, 0.32);
+  border-color: rgba(255, 215, 120, 0.75);
+  color: rgba(255, 240, 200, 1);
+}
 .skill-actions button {
   padding: 6px 12px;
   border-radius: 8px;

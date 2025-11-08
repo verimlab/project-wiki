@@ -8,7 +8,8 @@ import {
   skillDraftFromCatalog,
   type SkillEditorDraft as ImportedSkillEditorDraft,
 } from '../api/skills';
-import type { SkillCatalogEntry, SkillCategory, SkillStatMod, SkillStatModTarget } from '../types/sheet';
+import { SKILL_CATEGORY_LABELS, SKILL_CATEGORY_OPTIONS } from '../constants/skills';
+import { SKILL_CATEGORY_VALUES, type SkillCatalogEntry, type SkillCategory, type SkillStatMod, type SkillStatModTarget } from '../types/sheet';
 import './GmSkillsPage.css';
 
 const NEW_ID = '__new';
@@ -48,14 +49,37 @@ const emptyDraft = (): SkillEditorDraft => ({
   requiredExp: 100,
   keywords: [],
   perks: [],
+  aspects: [],
   rank: '',
+  manaCost: '',
   category: 'misc',
   hasAttack: false,
   attack: emptyAttackFields(),
   statMods: [],
 });
 
+const RANDOM_BLOCK_TEXT = {
+  title: '\u0421\u043b\u0443\u0447\u0430\u0439\u043d\u044b\u0439 \u043d\u0430\u0432\u044b\u043a',
+  subtitle: '\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u0444\u0438\u043b\u044c\u0442\u0440\u044b \u0438 \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u0435 \u0438\u0434\u0435\u044e.',
+  categoryLabel: '\u041a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u044f',
+  categoryAny: '\u041b\u044e\u0431\u0430\u044f',
+  rankLabel: '\u0420\u0430\u043d\u0433',
+  rankAny: '\u041b\u044e\u0431\u043e\u0439',
+  aspectLabel: '\u0410\u0441\u043f\u0435\u043a\u0442',
+  aspectAny: '\u041b\u044e\u0431\u043e\u0439',
+  generate: '\u0421\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c',
+  open: '\u041e\u0442\u043a\u0440\u044b\u0442\u044c',
+  emptyCatalog: '\u041a\u0430\u0442\u0430\u043b\u043e\u0433 \u043f\u0443\u0441\u0442 \u2014 \u0438\u043c\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439\u0442\u0435 \u043d\u0430\u0432\u044b\u043a\u0438.',
+  noMatches: '\u041d\u0435\u0442 \u043d\u0430\u0432\u044b\u043a\u043e\u0432 \u0441 \u0442\u0430\u043a\u0438\u043c\u0438 \u0444\u0438\u043b\u044c\u0442\u0440\u0430\u043c\u0438.',
+};
+
 const toKeywords = (value: string) =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const toAspects = (value: string) =>
   value
     .split(',')
     .map((item) => item.trim())
@@ -75,12 +99,13 @@ const mapJsonToDraft = (raw: Record<string, unknown>, fallbackOrder: number): Sk
   requiredExp: typeof raw.requiredExp === 'number' ? raw.requiredExp : undefined,
   keywords: Array.isArray(raw.keywords) ? raw.keywords.map((kw) => String(kw)) : [],
   perks: Array.isArray(raw.perks) ? raw.perks.map((perk) => String(perk)) : [],
+  aspects: Array.isArray((raw as any).aspects) ? (raw as any).aspects.map((asp: unknown) => String(asp)) : [],
   // 'branches' не импортируем, т.к. поле удалено
   rank: typeof raw.rank === 'string' ? raw.rank : undefined,
+  manaCost: typeof (raw as any).manaCost === 'string' ? (raw as any).manaCost : undefined,
   category: ((): SkillCategory | undefined => {
     const v = typeof (raw as any).category === 'string' ? (raw as any).category : undefined;
-    const allowed: SkillCategory[] = ['proficiency', 'magic', 'passive', 'misc'];
-    return v && (allowed as string[]).includes(v) ? (v as SkillCategory) : undefined;
+    return v && (SKILL_CATEGORY_VALUES as string[]).includes(v) ? (v as SkillCategory) : undefined;
   })(),
   
   hasAttack: typeof raw.hasAttack === 'boolean' ? raw.hasAttack : false,
@@ -116,9 +141,15 @@ const GmSkillsPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<SkillEditorDraft | null>(null);
   const [keywordsValue, setKeywordsValue] = useState('');
+  const [aspectsValue, setAspectsValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [randomCategoryFilter, setRandomCategoryFilter] = useState<'all' | SkillCategory>('all');
+  const [randomRankFilter, setRandomRankFilter] = useState<'all' | string>('all');
+  const [randomAspectFilter, setRandomAspectFilter] = useState<'all' | string>('all');
+  const [randomSkill, setRandomSkill] = useState<SkillCatalogEntry | null>(null);
+  const [randomMessage, setRandomMessage] = useState<string | null>(null);
 
   const updateStatMod = (index: number, patch: Partial<SkillStatMod>) => {
     setDraft((prev) => {
@@ -178,11 +209,14 @@ const GmSkillsPage: React.FC = () => {
       
       setDraft(newDraft);
       setKeywordsValue((newDraft.keywords ?? []).join(', '));
+      setAspectsValue((newDraft.aspects ?? []).join(', '));
     } else if (catalog.length > 0) {
       setSelectedId(catalog[0].id);
     } else {
       setDraft(null);
       setKeywordsValue('');
+      setAspectsValue('');
+      setAspectsValue('');
     }
   }, [catalog, selectedId]);
 
@@ -204,11 +238,48 @@ const GmSkillsPage: React.FC = () => {
     );
   }, [catalog, search]);
 
+  const rankOptions = useMemo(() => {
+    const unique = new Set<string>();
+    catalog.forEach((skill) => {
+      const rankValue = (skill.rank || '').trim();
+      if (rankValue) unique.add(rankValue);
+    });
+    return Array.from(unique).sort((a, b) => a.localeCompare(b, 'ru'));
+  }, [catalog]);
+
+  const aspectOptions = useMemo(() => {
+    const unique = new Set<string>();
+    catalog.forEach((skill) => {
+      (skill.aspects || []).forEach((aspect) => {
+        const normalized = aspect.trim();
+        if (normalized) unique.add(normalized);
+      });
+    });
+    return Array.from(unique).sort((a, b) => a.localeCompare(b, 'ru', { sensitivity: 'base' }));
+  }, [catalog]);
+
+  useEffect(() => {
+    setRandomMessage(null);
+  }, [randomCategoryFilter, randomRankFilter, randomAspectFilter]);
+
+  useEffect(() => {
+    if (randomRankFilter !== 'all' && !rankOptions.includes(randomRankFilter)) {
+      setRandomRankFilter('all');
+    }
+  }, [rankOptions, randomRankFilter]);
+
+  useEffect(() => {
+    if (randomAspectFilter !== 'all' && !aspectOptions.includes(randomAspectFilter)) {
+      setRandomAspectFilter('all');
+    }
+  }, [aspectOptions, randomAspectFilter]);
+
   const startCreate = () => {
     const next = emptyDraft();
     setSelectedId(NEW_ID);
     setDraft(next);
     setKeywordsValue('');
+    setAspectsValue('');
   };
 
   const resetDraft = () => {
@@ -229,10 +300,12 @@ const GmSkillsPage: React.FC = () => {
         
         setDraft(newDraft);
         setKeywordsValue((newDraft.keywords ?? []).join(', '));
+        setAspectsValue((newDraft.aspects ?? []).join(', '));
       }
     } else {
       setDraft(null);
       setKeywordsValue('');
+      setAspectsValue('');
     }
   };
 
@@ -318,6 +391,38 @@ const GmSkillsPage: React.FC = () => {
     }
   };
 
+  const handleRandomSkill = () => {
+    if (!catalog.length) {
+      setRandomSkill(null);
+      setRandomMessage(RANDOM_BLOCK_TEXT.emptyCatalog);
+      return;
+    }
+
+    const pool = catalog.filter((skill) => {
+      const matchesCategory =
+        randomCategoryFilter === 'all' || skill.category === randomCategoryFilter;
+      const matchesRank =
+        randomRankFilter === 'all' ||
+        (skill.rank || '').toLowerCase() === randomRankFilter.toLowerCase();
+      const matchesAspect =
+        randomAspectFilter === 'all' ||
+        (skill.aspects || []).some(
+          (aspect) => aspect.trim().toLowerCase() === randomAspectFilter.toLowerCase(),
+        );
+      return matchesCategory && matchesRank && matchesAspect;
+    });
+
+    if (!pool.length) {
+      setRandomSkill(null);
+      setRandomMessage(RANDOM_BLOCK_TEXT.noMatches);
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    setRandomSkill(pool[randomIndex]);
+    setRandomMessage(null);
+  };
+
   const updateDraft = (patch: Partial<SkillEditorDraft>) => {
     setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
   };
@@ -334,6 +439,11 @@ const GmSkillsPage: React.FC = () => {
   const handleKeywordsChange = (value: string) => {
     setKeywordsValue(value);
     updateDraft({ keywords: toKeywords(value) });
+  };
+
+  const handleAspectsChange = (value: string) => {
+    setAspectsValue(value);
+    updateDraft({ aspects: toAspects(value) });
   };
 
   // ... (JSX...)
@@ -368,6 +478,97 @@ const GmSkillsPage: React.FC = () => {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <div className="gs-random">
+            <div className="gs-random__header">
+              <i className="fa-solid fa-shuffle" aria-hidden />
+              <div>
+                <strong>{RANDOM_BLOCK_TEXT.title}</strong>
+                <p>{RANDOM_BLOCK_TEXT.subtitle}</p>
+              </div>
+            </div>
+            <label>
+              {RANDOM_BLOCK_TEXT.categoryLabel}
+              <select
+                value={randomCategoryFilter}
+                onChange={(e) =>
+                  setRandomCategoryFilter(e.target.value as 'all' | SkillCategory)
+                }
+              >
+                <option value="all">{RANDOM_BLOCK_TEXT.categoryAny}</option>
+                {SKILL_CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {RANDOM_BLOCK_TEXT.rankLabel}
+              <select
+                value={randomRankFilter}
+                onChange={(e) => setRandomRankFilter(e.target.value)}
+              >
+                <option value="all">{RANDOM_BLOCK_TEXT.rankAny}</option>
+                {rankOptions.map((rank) => (
+                  <option key={rank} value={rank}>
+                    {rank}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {RANDOM_BLOCK_TEXT.aspectLabel}
+              <select
+                value={randomAspectFilter}
+                onChange={(e) => setRandomAspectFilter(e.target.value)}
+              >
+                <option value="all">{RANDOM_BLOCK_TEXT.aspectAny}</option>
+                {aspectOptions.map((aspect) => (
+                  <option key={aspect} value={aspect}>
+                    {aspect}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className="gs-random__btn" onClick={handleRandomSkill}>
+              <i className="fa-solid fa-dice" /> {RANDOM_BLOCK_TEXT.generate}
+            </button>
+            {randomMessage && (
+              <p className={`gs-random__hint${randomSkill ? '' : ' is-error'}`}>{randomMessage}</p>
+            )}
+            {randomSkill && (
+              <div className="gs-random__result">
+                <div>
+                  <div className="gs-random__result-title">
+                    {randomSkill.name}
+                    {randomSkill.rank && <span className="gs-rank-chip">{randomSkill.rank}</span>}
+                  </div>
+                  <div className="gs-random__result-meta">
+                    {randomSkill.category && (
+                      <span>
+                        {SKILL_CATEGORY_LABELS[randomSkill.category as SkillCategory] ??
+                          randomSkill.category}
+                      </span>
+                    )}
+                    {randomSkill.requiredExp && <span>EXP {randomSkill.requiredExp}</span>}
+                    {randomSkill.aspects?.length ? (
+                      <span>
+                        {RANDOM_BLOCK_TEXT.aspectLabel}: {randomSkill.aspects.join(', ')}
+                      </span>
+                    ) : null}
+                  </div>
+                  {randomSkill.description && <p>{randomSkill.description}</p>}
+                </div>
+                <button
+                  type="button"
+                  className="gs-random__open"
+                  onClick={() => setSelectedId(randomSkill.id)}
+                >
+                  <i className="fa-solid fa-arrow-right-to-bracket" /> {RANDOM_BLOCK_TEXT.open}
+                </button>
+              </div>
+            )}
+          </div>
           <ul className="gs-list" role="listbox">
             {loading && <li className="gs-empty">Загрузка...</li>}
             {!loading && filtered.length === 0 && <li className="gs-empty">Ничего не найдено.</li>}
@@ -391,6 +592,10 @@ const GmSkillsPage: React.FC = () => {
                     {skill.description && <p>{skill.description}</p>}
                     <div className="gs-list-tags">
                       {skill.requiredExp && <span>EXP {skill.requiredExp}</span>}
+                      {skill.category && (
+                        <span>{SKILL_CATEGORY_LABELS[skill.category as SkillCategory] ?? skill.category}</span>
+                      )}
+                      {skill.manaCost?.trim() && <span>Затраты маны: {skill.manaCost}</span>}
                       {!!skill.perks?.length && <span>{skill.perks.length} перков</span>}
                     </div>
                   </div>
@@ -435,16 +640,21 @@ const GmSkillsPage: React.FC = () => {
                   <input value={draft.rank || ''} onChange={(e) => updateDraft({ rank: e.target.value })} placeholder="S, A, B+ и т.п." />
                 </label>
                 <label>
+                  Затраты маны
+                  <input value={draft.manaCost || ""} onChange={(e) => updateDraft({ manaCost: e.target.value })} placeholder="15 МП" />
+                </label>
+                <label>
                   Icon (FA или Remix)
                   <input value={draft.icon || ''} onChange={(e) => updateDraft({ icon: e.target.value })} placeholder="fa-solid fa-wand-magic-sparkles" />
                 </label>
                 <label>
                   Категория
                   <select value={draft.category ?? 'misc'} onChange={(e) => updateDraft({ category: e.target.value as SkillCategory })}>
-                    <option value="proficiency">Владение</option>
-                    <option value="magic">Магия</option>
-                    <option value="passive">Пассивные</option>
-                    <option value="misc">Разное</option>
+                    {SKILL_CATEGORY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>
@@ -547,13 +757,24 @@ const GmSkillsPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                </div><label>
+                </div>
+                <label>
                     Описание
                     <textarea rows={4} value={draft.description || ''} onChange={(e) => updateDraft({ description: e.target.value })} placeholder="История, рекомендации, особенности" />
-                  </label><label>
+                  </label>
+                <label>
                     Ключевые слова (через запятую)
                     <input value={keywordsValue} onChange={(e) => handleKeywordsChange(e.target.value)} placeholder="яд, ловкость, алхимия" />
-                  </label></>
+                  </label>
+                <label>
+                  {'\u0410\u0441\u043f\u0435\u043a\u0442\u044b'}
+                  <input
+                    value={aspectsValue}
+                    onChange={(e) => handleAspectsChange(e.target.value)}
+                    placeholder="\u043e\u0433\u043e\u043d\u044c, \u0445\u043e\043b\043e\0434, \u044f\0434"
+                  />
+                </label>
+              </>
 }
 
               {/* --- [ИЗМЕНЕНО] --- */} {/* '}' expected. */}

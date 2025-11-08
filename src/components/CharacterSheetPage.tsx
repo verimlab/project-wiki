@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -13,6 +13,7 @@ import type {
   Skill,
   SkillAttackData,
   SkillCatalogEntry,
+  SkillCategory,
 } from '../types/sheet';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { auth, db, googleProvider } from '../firebase';
@@ -22,9 +23,9 @@ import { defaultAttackFor } from '../utils/attacks';
 import './CharacterSheetPage.css';
 import { STAT_META } from '../constants';
 import type { StatsState } from '../types/sheet';
-import { useRef } from 'react';
 import { useSkillsCatalog } from '../hooks/useSkillsCatalog';
 import { useRole } from '../hooks/useRole';
+import { SKILL_CATEGORY_LABELS, SKILL_CATEGORY_OPTIONS } from '../constants/skills';
 
 
 // ИЗМЕНЕНИЕ: Добавлена категория "Валюта"
@@ -47,6 +48,12 @@ const TAB_CATEGORIES: Array<{ id: InventoryCategoryId | 'all'; label: string; ic
 
 
 const LEVELS = Array.from({ length: 10 }, (_, i) => i + 1);
+
+type SkillTabId = 'all' | SkillCategory;
+const SKILL_TAB_OPTIONS: Array<{ id: SkillTabId; label: string }> = [
+  { id: 'all', label: 'Все' },
+  ...SKILL_CATEGORY_OPTIONS.map(({ value, label }) => ({ id: value, label })),
+];
 
 // НОВЫЙ ТИП: Запись в истории повышений уровня
 type LevelUpHistoryEntry = {
@@ -174,7 +181,7 @@ const CharacterSheetPage: React.FC = () => {
   // ... (без изменений)
   const { catalog: skillCatalog, loading: catalogLoading } = useSkillsCatalog();
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [skillsTab, setSkillsTab] = useState<'all' | 'proficiency' | 'magic' | 'passive' | 'misc'>('all');
+  const [skillsTab, setSkillsTab] = useState<SkillTabId>('all');
   const [skillInput, setSkillInput] = useState('');
   const [suggestions, setSuggestions] = useState<SkillCatalogEntry[]>([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
@@ -412,6 +419,8 @@ const CharacterSheetPage: React.FC = () => {
           perks: Array.isArray(entry.perks) ? entry.perks : undefined,
           keywords: Array.isArray(entry.keywords) ? entry.keywords : undefined,
           rank: typeof entry.rank === 'string' ? entry.rank : undefined,
+          manaCost: typeof (entry as any).manaCost === 'string' ? (entry as any).manaCost : undefined,
+          category: typeof entry.category === 'string' && SKILL_CATEGORY_OPTIONS.some((opt) => opt.value === entry.category) ? (entry.category as SkillCategory) : undefined,
           // ИСПРАВЛЕНИЕ: Добавляем hasAttack и attack из GmSkillsPage.tsx
           hasAttack: typeof (entry as any).hasAttack === 'boolean' ? (entry as any).hasAttack : false,
           attack: typeof (entry as any).attack === 'object' ? (entry as any).attack : undefined,
@@ -888,18 +897,26 @@ const CharacterSheetPage: React.FC = () => {
         expCurrent: 0,
         expMax: match?.requiredExp ?? 100,
         perks: match?.perks,
+        manaCost: match?.manaCost,
         keywords: match?.keywords,
+        category: match?.category,
         rank: match?.rank,
+        favorite: Boolean(match?.favorite),
         // ИСПРАВЛЕНИЕ: Добавляем hasAttack / attack
         ...(matchAsAny?.hasAttack && { hasAttack: matchAsAny.hasAttack }),
         ...(matchAsAny?.attack && { attack: matchAsAny.attack }),
-        ...(matchAsAny?.category && { category: matchAsAny.category }),
         branches: [],
       } as any; // ИСПРАВЛЕНИЕ: Приводим к 'any'
       return [...prev, base];
     });
     setSkillInput('');
   }
+
+  const toggleSkillFavorite = useCallback((index: number) => {
+    setSkills((prev) =>
+      prev.map((skill, i) => (i === index ? { ...skill, favorite: !skill.favorite } : skill)),
+    );
+  }, []);
 
   function removeSkill(idx: number) {
     // ... (без изменений)
@@ -1098,12 +1115,17 @@ const CharacterSheetPage: React.FC = () => {
   }, [skillInput, suggestions]);
 
   const skillsForModal = useMemo(() => {
-    if (skillsTab === 'all') return skills;
-    const tab = skillsTab;
-    return skills.filter((sk) => {
-      const cat = (sk as any)?.category || (skillCatalog || []).find((c) => (c.name || '').toLowerCase() === (sk.name || '').toLowerCase())?.category;
-      return cat === tab;
-    });
+    const baseList =
+      skillsTab === 'all'
+        ? skills
+        : skills.filter((sk) => {
+            const cat =
+              (sk as any)?.category ||
+              (skillCatalog || []).find((c) => (c.name || '').toLowerCase() === (sk.name || '').toLowerCase())?.category;
+            return cat === skillsTab;
+          });
+    const sorted = baseList.slice().sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite));
+    return sorted;
   }, [skills, skillsTab, skillCatalog]);
 
   const filteredItems = useMemo(() => {
@@ -2003,39 +2025,51 @@ const CharacterSheetPage: React.FC = () => {
               {suggestOpen && filteredSuggests.length > 0 && (
                 <div className="skills-suggest" style={{ display: 'block' }}>
                   <ul className="skills-suggest__list" role="listbox">
-                    {filteredSuggests.map((s) => (
-                      <li key={s.id} className="skills-suggest__item" role="option" onMouseDown={(e) => e.preventDefault()} onClick={() => addSkill(s.name)}>
-                        <i className={`skills-suggest__icon ${resolveIconClass(s.icon)}`} />
-                        <div>
-                          <div className="skills-suggest__name">
-                            {s.name}
-                            {s.rank && <span className="skills-suggest__rank">{s.rank}</span>}
+                    {filteredSuggests.map((s) => {
+                      const categoryLabel = s.category ? SKILL_CATEGORY_LABELS[s.category as SkillCategory] ?? s.category : undefined;
+                      const showMeta = Boolean(s.manaCost?.trim() || categoryLabel);
+                      return (
+                        <li key={s.id} className="skills-suggest__item" role="option" onMouseDown={(e) => e.preventDefault()} onClick={() => addSkill(s.name)}>
+                          <i className={`skills-suggest__icon ${resolveIconClass(s.icon)}`} />
+                          <div>
+                            <div className="skills-suggest__name">
+                              {s.name}
+                              {s.rank && <span className="skills-suggest__rank">{s.rank}</span>}
+                            </div>
+                            {s.description && <div className="skills-suggest__desc">{s.description}</div>}
+                            {showMeta && (
+                              <div className="skills-suggest__meta">
+                                {s.manaCost?.trim() && (
+                                  <span className="skills-suggest__meta-chip">
+                                    <i className="fa-solid fa-droplet" /> Затраты маны: {s.manaCost}
+                                  </span>
+                                )}
+                                {categoryLabel && (
+                                  <span className="skills-suggest__meta-chip">
+                                    <i className="fa-solid fa-tag" /> {categoryLabel}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          {s.description && <div className="skills-suggest__desc">{s.description}</div>}
-                        </div>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8, margin: '8px 0 12px' }}>
-              {[
-                { id: 'all', label: 'Все' },
-                { id: 'proficiency', label: 'Владение' },
-                { id: 'magic', label: 'Магия' },
-                { id: 'passive', label: 'Пассивные' },
-                { id: 'misc', label: 'Разное' },
-              ].map((t) => (
+              {SKILL_TAB_OPTIONS.map((t) => (
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => setSkillsTab(t.id as any)}
+                  onClick={() => setSkillsTab(t.id)}
                   style={{
                     padding: '6px 10px',
                     borderRadius: 999,
                     border: '1px solid rgba(120,160,255,0.25)',
-                    background: (skillsTab === (t.id as any)) ? 'rgba(120,160,255,0.22)' : 'rgba(20,30,58,0.45)',
+                    background: (skillsTab === t.id) ? 'rgba(120,160,255,0.22)' : 'rgba(20,30,58,0.45)',
                     color: '#e6ebff',
                     cursor: 'pointer'
                   }}
@@ -2048,22 +2082,47 @@ const CharacterSheetPage: React.FC = () => {
                 const unlocked = (sk.expCurrent ?? 0) >= (req ?? 100);
                 const b0 = sk.branches?.[0];
                 const perkSummary = (sk.perks || []).map((p, i) => ({ p, i, on: !!(b0?.perksState?.[i]) }));
+                const categoryLabel = sk.category ? SKILL_CATEGORY_LABELS[sk.category as SkillCategory] ?? sk.category : undefined;
+                const showMeta = Boolean(sk.manaCost?.trim() || categoryLabel);
                 return (
-                  <li key={`${sk.name}-${sIdx}`} className="skill-item">
+                  <li key={`${sk.name}-${sIdx}`} className={`skill-item${sk.favorite ? ' skill-item--favorite' : ''}`}>
                     <div className="skill-row">
                       <div>
                         <div className="skill-name-row">
                           <div className="skill-name">
                             <i className={resolveIconClass(sk.icon)} /> {sk.name}
+                            {sk.favorite && <i className="fa-solid fa-star skill-favorite-indicator" title="Избранный навык" />}
                           </div>
                           {sk.rank && <span className="skill-rank-chip">{sk.rank}</span>}
                         </div>
                         {sk.description && <div className="skill-desc">{sk.description}</div>}
+                        {showMeta && (
+                          <div className="skill-meta">
+                            {sk.manaCost?.trim() && (
+                              <span className="skill-meta__chip">
+                                <i className="fa-solid fa-droplet" /> Затраты маны: {sk.manaCost}
+                              </span>
+                            )}
+                            {categoryLabel && (
+                              <span className="skill-meta__chip">
+                                <i className="fa-solid fa-tag" /> {categoryLabel}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="skill-actions">
+                        <button
+                          type="button"
+                          className={`skill-favorite-btn${sk.favorite ? ' is-active' : ''}`}
+                          onClick={() => toggleSkillFavorite(sIdx)}
+                          title={sk.favorite ? 'Убрать из избранных' : 'В избранные'}
+                        >
+                          <i className={sk.favorite ? 'fa-solid fa-star' : 'fa-regular fa-star'} />
+                        </button>
                         {unlocked && !!(sk.perks?.length) && (
                           <button type="button" className="perks-open-btn" onClick={() => openPerks(sIdx)}>
-                            <i className="fa-solid fa-sitemap" /> Выберите перки
+                            <i className="fa-solid fa-sitemap" /> Выбрать перки
                           </button>
                         )}
                         <button type="button" onClick={() => removeSkill(sIdx)}>

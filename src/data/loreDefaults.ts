@@ -49,6 +49,8 @@ export const buildDefaultArticles = (): ArticlesMap => ({
       tags: ['угроза', 'мистика'],
       coverColor: '#c28dff',
       icon: 'fa-solid fa-dragon',
+      category: '??????? ????????',
+      skillProficiencies: [],
       content:
         '<p>Шёпот появляется там, где люди подавляют страх. Он материализуется в дым и заставляет жертву переживать худшие воспоминания.</p>',
       updatedAt: Date.now(),

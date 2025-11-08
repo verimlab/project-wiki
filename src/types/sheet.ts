@@ -65,15 +65,37 @@ export type Skill = {
   branches: SkillBranch[];
   hasAttack?: boolean;
   attack?: SkillAttackData;
+  manaCost?: string;
+  favorite?: boolean;
   category?: SkillCategory; // grouping in UI
   // New: optional stat modifications this skill provides
   statMods?: SkillStatMod[];
+  aspects?: string[];
 };
 
 export type SkillCatalogEntry = Skill & { id: string };
 
 // Normalized ids for grouping skills
-export type SkillCategory = 'proficiency' | 'magic' | 'passive' | 'misc';
+export type SkillCategory =
+  | 'proficiency'
+  | 'magic'
+  | 'passive'
+  | 'ritual'
+  | 'gift'
+  | 'technique'
+  | 'support'
+  | 'misc';
+
+export const SKILL_CATEGORY_VALUES: SkillCategory[] = [
+  'proficiency',
+  'magic',
+  'passive',
+  'ritual',
+  'gift',
+  'technique',
+  'support',
+  'misc',
+];
 
 export type InventoryCategoryId =
   | 'gear'

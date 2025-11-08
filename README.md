@@ -43,6 +43,23 @@ export default defineConfig([
 ])
 ```
 
+
+## AI Assistant (Gemini) Setup
+
+This project includes an AI assistant backed by Google Gemini via Firebase Cloud Functions.
+
+- Backend: Cloud Function `functions/index.js:1` reads Firestore and calls Gemini.
+- Frontend: Floating widget `src/components/AssistantWidget.tsx:1` calls `/api/gemini` via `src/api/assistant.ts:1`.
+
+Setup
+- Install root deps: `npm i`
+- Install functions deps: `cd functions && npm i`
+- Set secret: `firebase functions:secrets:set GEMINI_API_KEY`
+- Deploy: `firebase deploy --only functions,hosting`
+
+Notes
+- Dev locally using Firebase emulators or remote function.
+- Retrieval is keyword-based; consider embeddings for better RAG later.
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
 ```js

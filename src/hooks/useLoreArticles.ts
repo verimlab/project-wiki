@@ -33,6 +33,7 @@ const mapDocToArticle = (id: string, data: Record<string, unknown>): Article => 
   const acVal = (data as any).ac;
   const attacksVal = (data as any).attacks;
   const categoryVal = (data as any).category;
+  const skillsVal = (data as any).skillProficiencies;
 
   const article = {
     id,
@@ -49,6 +50,10 @@ const mapDocToArticle = (id: string, data: Record<string, unknown>): Article => 
   } as any;
 
   if (categoryVal != null) article.category = String(categoryVal);
+  if (Array.isArray(skillsVal)) {
+    const profs = Array.from(new Set(skillsVal.map((item: unknown) => String(item).trim()).filter(Boolean)));
+    if (profs.length) article.skillProficiencies = profs;
+  }
 
   return article as Article;
 };
