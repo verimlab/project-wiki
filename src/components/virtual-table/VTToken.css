@@ -1,0 +1,105 @@
+/* src/components/virtual-table/VTToken.css */
+
+.vt-token-wrapper {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+.vt-token-wrapper button {
+  pointer-events: all;
+}
+.vt-token-wrapper.is-active .vt-token {
+  box-shadow: 0 0 20px rgba(125, 187, 255, 0.8);
+}
+.vt-token {
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #051428;
+  cursor: grab;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+.vt-token.has-image {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.vt-token[disabled] {
+  cursor: default;
+  opacity: 0.85;
+}
+.vt-token:active {
+  cursor: grabbing;
+  transform: scale(1.03);
+}
+.vt-token--sm {
+  width: 42px;
+  height: 42px;
+  font-size: 12px;
+}
+.vt-token--md {
+  width: 52px;
+  height: 52px;
+  font-size: 14px;
+}
+.vt-token--lg {
+  width: 68px;
+  height: 68px;
+  font-size: 16px;
+}
+.vt-token-symbol {
+  text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.vt-token-avatar {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.vt-token-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  image-rendering: optimizeQuality;
+  image-rendering: -webkit-optimize-contrast;
+  transform: scale(1.04);
+  will-change: transform;
+}
+.vt-token-initiative {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(5, 20, 40, 0.9);
+  color: #d6f0ff;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+}
+.vt-token-caption {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-top: 8px;
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: rgba(235, 242, 255, 0.95);
+  background: rgba(5, 12, 28, 0.45);
+  box-shadow: 0 4px 10px rgba(2, 4, 12, 0.6);
+  text-shadow: 0 0 2px rgba(1, 3, 8, 0.85), 0 0 8px rgba(1, 3, 8, 0.65);
+  pointer-events: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}

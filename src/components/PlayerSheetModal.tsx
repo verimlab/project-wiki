@@ -62,9 +62,11 @@ const PlayerSheetModal: React.FC<PlayerSheetModalProps> = ({ sheet, onClose }) =
           <section>
             <h3><i className="fa-solid fa-star" /> Характеристики</h3>
             <div className="sheet-modal-stats">
-              {STAT_META.map(({ key, label }) => (
+              {STAT_META.map(({ key, label, icon }) => (
                 <div key={key} className="sheet-modal-stat">
-                  <span className="sheet-modal-stat__label">{label}</span>
+                  <span className="sheet-modal-stat__label" aria-label={label}>
+                    <i className={icon} aria-hidden />
+                  </span>
                   <span className="sheet-modal-stat__value">{getStatValue(key)}</span>
                 </div>
               ))}

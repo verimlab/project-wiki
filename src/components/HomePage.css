@@ -247,6 +247,7 @@
   animation:fade-in 1.4s ease both 0.4s;
 }
 
+
 /* ===== НАЧАЛО ИЗМЕНЕНИЙ (Карточки) ===== */
 
 .hw-grid{
@@ -277,6 +278,20 @@
   background:rgba(32,48,88,0.72);
   border-color:rgba(140, 188, 255, 0.45);
   box-shadow:0 28px 44px rgba(8,14,28,0.42);
+}
+
+.hw-card.is-locked{
+  cursor: default;
+  opacity: 0.85;
+  border-style: dashed;
+  position: relative;
+}
+
+.hw-card.is-locked:hover{
+  transform:none;
+  background:rgba(20,30,56,0.6);
+  border-color:rgba(140,188,255,0.25);
+  box-shadow:none;
 }
 
 .hw-card-header { /* <-- НОВЫЙ КЛАСС */
@@ -797,8 +812,15 @@
 
 /* Icon-based dice animations for d4, d8, d10, d12, d20, d100, d1000 */
 .hw-die-icon-wrap{ perspective: 800px; }
-.hw-die-icon{ display:inline-grid; place-items:center; width:64px; height:64px; color:var(--accent); filter:drop-shadow(0 8px 16px rgba(0,0,0,0.35)); transform-style:preserve-3d; }
+.hw-die-icon{ display:inline-grid; place-items:center; width:64px; height:64px; color:var(--accent); filter:drop-shadow(0 8px 16px rgba(0,0,0,0.35)); transform-style:preserve-3d; position:relative; }
 .hw-die-icon i{ font-size:56px; }
+.hw-die-value{
+  position:absolute;
+  font-size:20px;
+  font-weight:700;
+  color:#fff;
+  text-shadow:0 0 10px rgba(0,0,0,0.6);
+}
 
 /* default spin */
 .hw-die-icon{ animation: die-spin-3d 900ms linear infinite; }
@@ -1034,3 +1056,4 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+

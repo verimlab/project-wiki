@@ -1,7 +1,7 @@
-import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ATTACKS_KEY, INVENTORY_KEY, SHEET_KEY, SKILLS_KEY, STATS_KEY } from '../types/sheet';
 import type {
   CharacterSheet,
@@ -45,6 +45,32 @@ const TAB_CATEGORIES: Array<{ id: InventoryCategoryId | 'all'; label: string; ic
   { id: 'all', label: 'Все', icon: 'fa-solid fa-boxes-stacked' },
   ...CATEGORIES,
 ];
+
+const normalizeInventoryItems = (list: InventoryItem[]): InventoryItem[] =>
+  list.map((item, index) => ({
+    ...item,
+    createdAt: typeof item.createdAt === 'number' ? item.createdAt : index,
+  }));
+
+type ItemFormState = {
+  name: string;
+  category: InventoryCategoryId;
+  quantity: number;
+  weight: number | '';
+  note: string;
+  system: boolean;
+  hasAttack: boolean;
+};
+
+const createEmptyItemForm = (): ItemFormState => ({
+  name: '',
+  category: 'gear' as InventoryCategoryId,
+  quantity: 1,
+  weight: '',
+  note: '',
+  system: false,
+  hasAttack: false,
+});
 
 
 const LEVELS = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -193,33 +219,41 @@ const CharacterSheetPage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [inventoryView, setInventoryView] = useState<'list' | 'form'>('list');
   const [activeInventoryCategory, setActiveInventoryCategory] = useState<InventoryCategoryId | 'all'>('all');
-  const [itemForm, setItemForm] = useState({
-    name: '',
-    category: 'gear' as InventoryCategoryId,
-    quantity: 1,
-    weight: 0, // НОВОЕ ПОЛЕ
-    note: '',
-    system: false,
-    hasAttack: false,
-  });
+  const [itemForm, setItemForm] = useState<ItemFormState>(createEmptyItemForm());
   const [itemFormError, setItemFormError] = useState<string | null>(null);
   const [attackDraft, setAttackDraft] = useState<AttackFields>({ bonus: '', damage: '', type: '', range: '', properties: '' });
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
+  const inventoryFormMode = editingItem ? 'Редактирование' : 'Новый предмет';
+  const inventoryFormSubtitle = editingItem ? 'Обновление предмета' : 'Создание предмета';
+  const inventoryFormTitle = itemForm.name.trim() || editingItem?.name || 'Новый предмет';
+  const inventoryFormStatusIcon = editingItem ? 'fa-solid fa-pen-to-square' : 'fa-solid fa-plus';
+  const currentCategoryLabel = CATEGORIES.find((c) => c.id === itemForm.category)?.label ?? 'Снаряжение';
+  const numericItemWeight = typeof itemForm.weight === 'number' ? itemForm.weight : null;
+  const totalItemWeightPreview = numericItemWeight !== null
+    ? Number((numericItemWeight * itemForm.quantity).toFixed(2))
+    : null;
+
+  useEffect(() => {
+    if (!categoryDropdownOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!categoryDropdownRef.current) return;
+      if (!categoryDropdownRef.current.contains(event.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [categoryDropdownOpen]);
 
   function resetAndShowList() {
     // ... (без изменений)
     setInventoryView('list');
     setEditingItem(null);
-    setItemForm({
-      name: '',
-      category: 'gear' as InventoryCategoryId,
-      quantity: 1,
-      weight: 0,
-      note: '',
-      system: false,
-      hasAttack: false,
-    });
+    setItemForm(createEmptyItemForm());
     setItemFormError(null);
     setAttackDraft(defaultAttackFor(''));
+    setCategoryDropdownOpen(false);
   }
 
   function openInventory() {
@@ -237,15 +271,7 @@ const CharacterSheetPage: React.FC = () => {
   function openItemFormForAdd() {
     // ... (без изменений)
     setEditingItem(null);
-    setItemForm({
-      name: '',
-      category: 'gear' as InventoryCategoryId,
-      quantity: 1,
-      weight: 0,
-      note: '',
-      system: false,
-      hasAttack: false,
-    });
+    setItemForm(createEmptyItemForm());
     setItemFormError(null);
     setAttackDraft(defaultAttackFor(''));
     setInventoryView('form');
@@ -258,7 +284,7 @@ const CharacterSheetPage: React.FC = () => {
       name: item.name,
       category: item.category || 'gear',
       quantity: item.quantity,
-      weight: item.weight || 0,
+      weight: typeof item.weight === 'number' ? item.weight : '',
       note: item.note || '',
       system: item.system ?? false,
       hasAttack: item.hasAttack ?? false,
@@ -267,10 +293,22 @@ const CharacterSheetPage: React.FC = () => {
     setInventoryView('form');
   }
 
-  function handleItemFormChange(field: keyof typeof itemForm, value: any) {
+  function handleItemFormChange(field: keyof ItemFormState, value: any) {
     // ... (без изменений)
     setItemForm(prev => ({ ...prev, [field]: value }));
     if (field === 'name') setItemFormError(null);
+  }
+
+  function adjustNumberField(field: 'quantity' | 'weight', delta: number) {
+    setItemForm((prev) => {
+      if (field === 'quantity') {
+        const nextQty = Math.max(1, Math.round((prev.quantity || 1) + delta));
+        return { ...prev, quantity: nextQty };
+      }
+      const currentWeight = typeof prev.weight === 'number' ? prev.weight : 0;
+      const nextWeight = Math.max(0, parseFloat((currentWeight + delta).toFixed(1)));
+      return { ...prev, weight: nextWeight };
+    });
   }
 
   function handleItemSubmit(e: React.FormEvent) {
@@ -279,10 +317,11 @@ const CharacterSheetPage: React.FC = () => {
     const name = itemForm.name.trim();
     if (!name) { setItemFormError('Введите название предмета'); return; }
     const qty = Math.max(1, Math.round(itemForm.quantity || 1));
+    const weightValue = typeof itemForm.weight === 'number' ? itemForm.weight : 0;
 
     if (editingItem) {
       // Update existing item
-      const updatedItem = { ...editingItem, ...itemForm, quantity: qty };
+      const updatedItem = { ...editingItem, ...itemForm, quantity: qty, weight: weightValue };
       setItems(items.map(it => it.id === editingItem.id ? updatedItem : it));
       if (updatedItem.hasAttack) {
         setAttacks(prev => ({ ...prev, [updatedItem.id]: { ...(attacks[updatedItem.id] || {}), ...attackDraft } }));
@@ -299,6 +338,8 @@ const CharacterSheetPage: React.FC = () => {
         id: createId('inv'),
         ...itemForm,
         quantity: qty,
+        weight: weightValue,
+        createdAt: Date.now(),
       };
       setItems(prev => [...prev, newItem]);
       if (newItem.hasAttack) {
@@ -512,7 +553,8 @@ const CharacterSheetPage: React.FC = () => {
       const constitutionScore = stats.constitution.filter(Boolean).length;
 
       // 4. Рассчитываем прирост ХП и готовим уведомление
-      let healthIncrease = constitutionScore;
+      const baseHealthGain = constitutionScore + 1;
+      let healthIncrease = baseHealthGain;
       let d8Roll = 0;
 
       // Готовим запись для истории
@@ -523,7 +565,7 @@ const CharacterSheetPage: React.FC = () => {
         gainedStatPoints: 0,
       };
 
-      let toastMessage = `Уровень повышен! Новый уровень: ${newLevel}. +${constitutionScore} ХП.`;
+      let toastMessage = `Уровень повышен! Новый уровень: ${newLevel}. +${baseHealthGain} ХП.`;
       
       let newSkill: Skill | null = null; // Для хранения нового навыка
       let addedStatPoints = 0; // Для очков характеристик
@@ -531,8 +573,8 @@ const CharacterSheetPage: React.FC = () => {
       // Проверяем, если НОВЫЙ уровень - 5 или 10
       if (newLevel === 5 || newLevel === 10) {
         // --- Логика ХП ---
-        d8Roll = 8; // fixed instead of rolling d8 // Бросок d8
-        healthIncrease += d8Roll;
+        d8Roll = 9; // фиксированный бонус вместо d8
+        healthIncrease = constitutionScore + d8Roll; // убираем базовый +1
         toastMessage = `Уровень ${newLevel}! +${constitutionScore} (Тел.) и +${d8Roll} к макс. ХП!`;
         historyEntry.d8Roll = d8Roll;
 
@@ -689,7 +731,7 @@ const CharacterSheetPage: React.FC = () => {
       if (typeof s.manaCurrent !== 'undefined') setManaCurrent(s.manaCurrent ?? '');
       if (typeof s.manaMax !== 'undefined') setManaMax(s.manaMax ?? '');
       if (Array.isArray(s.skills)) setSkills(s.skills);
-      if (Array.isArray(s.inventory)) setItems(s.inventory);
+      if (Array.isArray(s.inventory)) setItems(normalizeInventoryItems(s.inventory));
       if (s.attacks) setAttacks(s.attacks);
       if (s.stats) {
  _setStats(s.stats as StatsState); // Загружаем в постоянные
@@ -700,7 +742,7 @@ const CharacterSheetPage: React.FC = () => {
       if (Array.isArray(s.levelUpHistory)) setLevelUpHistory(s.levelUpHistory);
     }
     if (skillsStore.value?.length) setSkills(skillsStore.value);
-    if (invStore.value?.length) setItems(invStore.value);
+    if (invStore.value?.length) setItems(normalizeInventoryItems(invStore.value));
     if (attacksStore.value && Object.keys(attacksStore.value).length) setAttacks(attacksStore.value);
     
     // Убедимся, что expMax корректен при первой загрузке
@@ -851,7 +893,7 @@ const CharacterSheetPage: React.FC = () => {
   const passivePerception = useMemo(() => {
     const perceptionScore = stats.perception.filter(Boolean).length;
     const bonus = (skillStatModTotals as any)?.perception || 0;
-    return 10 + perceptionScore + bonus;
+    return 5 + perceptionScore + bonus;
   }, [stats.perception, skillStatModTotals]);
 
   // НОВОЕ: Кнопка "Подтвердить"
@@ -901,7 +943,6 @@ const CharacterSheetPage: React.FC = () => {
         keywords: match?.keywords,
         category: match?.category,
         rank: match?.rank,
-        favorite: Boolean(match?.favorite),
         // ИСПРАВЛЕНИЕ: Добавляем hasAttack / attack
         ...(matchAsAny?.hasAttack && { hasAttack: matchAsAny.hasAttack }),
         ...(matchAsAny?.attack && { attack: matchAsAny.attack }),
@@ -911,12 +952,6 @@ const CharacterSheetPage: React.FC = () => {
     });
     setSkillInput('');
   }
-
-  const toggleSkillFavorite = useCallback((index: number) => {
-    setSkills((prev) =>
-      prev.map((skill, i) => (i === index ? { ...skill, favorite: !skill.favorite } : skill)),
-    );
-  }, []);
 
   function removeSkill(idx: number) {
     // ... (без изменений)
@@ -1124,15 +1159,21 @@ const CharacterSheetPage: React.FC = () => {
               (skillCatalog || []).find((c) => (c.name || '').toLowerCase() === (sk.name || '').toLowerCase())?.category;
             return cat === skillsTab;
           });
-    const sorted = baseList.slice().sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite));
-    return sorted;
+    return baseList.slice();
   }, [skills, skillsTab, skillCatalog]);
 
   const filteredItems = useMemo(() => {
-    if (activeInventoryCategory === 'all') {
-      return items;
-    }
-    return items.filter(it => it.category === activeInventoryCategory);
+    const base = activeInventoryCategory === 'all'
+      ? items
+      : items.filter(it => it.category === activeInventoryCategory);
+    return base
+      .map((item, idx) => ({ item, idx }))
+      .sort((a, b) => {
+        const byCreated = (b.item.createdAt ?? 0) - (a.item.createdAt ?? 0);
+        if (byCreated !== 0) return byCreated;
+        return a.idx - b.idx;
+      })
+      .map(({ item }) => item);
   }, [items, activeInventoryCategory]);
 
   const hasMagicGift = useMemo(() => {
@@ -1204,12 +1245,7 @@ const CharacterSheetPage: React.FC = () => {
         </div>
       )}
       <header className="cs-header" style={{ maxWidth: 1500, width: '100%', margin: '0 auto' }}>
-        <div>
-        </div>
-        <Link className="cs-back" to="/">
-          <i className="fa-solid fa-arrow-left-long" aria-hidden />
-          <span>НАЗАД</span>
-        </Link>
+        <div />
       </header>
 
       <div className="cs-columns">
@@ -1836,7 +1872,12 @@ const CharacterSheetPage: React.FC = () => {
                             <div className="inventory-item-top">
                               <span className="inventory-item-name">{it.name}</span>
                               <div className="inventory-item-meta">
-                                {it.weight > 0 && <span className="inventory-item-weight">{it.weight} кг</span>}
+                                {it.weight > 0 && (
+                                  <span className="inventory-item-weight">
+                                    <i className="fa-solid fa-weight-hanging" aria-hidden="true" />
+                                    {it.weight} кг
+                                  </span>
+                                )}
                                 <span className="inventory-item-qty">x{it.quantity}</span>
                               </div>
                             </div>
@@ -1857,12 +1898,14 @@ const CharacterSheetPage: React.FC = () => {
                                 <i className="fa-solid fa-plus" />
                               </button>
                             </div>
-                            <button type="button" className="inventory-edit-btn" onClick={(e) => { e.stopPropagation(); editItem(it); }}>
-                              <i className="fa-solid fa-pencil" />
-                            </button>
-                            <button className="inventory-remove" type="button" onClick={(e) => removeItem(e, it.id)}>
-                              <i className="fa-solid fa-trash" />
-                            </button>
+                            <div className="inventory-action-buttons">
+                              <button className="inventory-remove" type="button" onClick={(e) => removeItem(e, it.id)}>
+                                <i className="fa-solid fa-trash" />
+                              </button>
+                              <button type="button" className="inventory-edit-btn" onClick={(e) => { e.stopPropagation(); editItem(it); }}>
+                                <i className="fa-solid fa-pencil" />
+                              </button>
+                            </div>
                           </div>
                         </li>
                       ))}
@@ -1874,36 +1917,151 @@ const CharacterSheetPage: React.FC = () => {
               {/* === ВИД ФОРМЫ === */}
               {inventoryView === 'form' && (
                 <div className="inventory-form-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                  <h4>{editingItem ? 'Редактировать предмет' : 'Добавить предмет'}</h4>
-                  <form className="inventory-form" onSubmit={handleItemSubmit} style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '0 8px 8px 0' }}>
+                  <div className="inventory-form-header">
+                    <div>
+                      <p className="inventory-form-eyebrow">{inventoryFormSubtitle}</p>
+                      <h4 className="inventory-form-title">{inventoryFormTitle}</h4>
+                    </div>
+                    <span className="inventory-form-status-chip">
+                      <i className={inventoryFormStatusIcon} aria-hidden="true" />
+                      {inventoryFormMode}
+                    </span>
+                  </div>
+                  <div className="inventory-form-meta">
+                    <span className="inventory-meta-chip">
+                      <i className="fa-solid fa-layer-group" aria-hidden="true" />
+                      {currentCategoryLabel}
+                    </span>
+                    <span className="inventory-meta-chip">
+                      <i className="fa-solid fa-cubes" aria-hidden="true" />
+                      x{itemForm.quantity}
+                    </span>
+                    {numericItemWeight !== null && (
+                      <span className="inventory-meta-chip">
+                        <i className="fa-solid fa-weight-hanging" aria-hidden="true" />
+                        {numericItemWeight} кг
+                        {totalItemWeightPreview !== null && totalItemWeightPreview !== numericItemWeight && (
+                          <>
+                            {' '}• {totalItemWeightPreview} кг всего
+                          </>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <form className="inventory-form" onSubmit={handleItemSubmit} style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, overflowY: 'auto', padding: '0 8px 8px 0', gap: 16 }}>
                     {itemFormError && <div className="gm-hub-error" style={{ marginBottom: 8 }}>{itemFormError}</div>}
-                    <div className="inventory-form-grid" style={{ flex: '1 1 auto', minHeight: 0 }}>
-                      <div className="inventory-form-group">
-                        <label htmlFor="item-name">Название</label>
-                        <input id="item-name" className="inventory-field" type="text" placeholder="Название предмета" value={itemForm.name} onChange={(e) => handleItemFormChange('name', e.target.value)} required />
+                    <div className="inventory-form-sections">
+                      <div className="inventory-form-card">
+                        <div className="inventory-form-section-header">
+                          <h5>Основные данные</h5>
+                          <p>Заполни базовые характеристики предмета</p>
+                        </div>
+                        <div className="inventory-form-grid inventory-form-grid--two">
+                          <div className="inventory-form-group">
+                            <label htmlFor="item-name">Название</label>
+                            <div className="inventory-field-wrapper">
+                              <i className="fa-solid fa-tag" aria-hidden="true" />
+                              <input id="item-name" className="inventory-field" type="text" placeholder="Название предмета" value={itemForm.name} onChange={(e) => handleItemFormChange('name', e.target.value)} required />
+                            </div>
+                          </div>
+                        <div className="inventory-form-group">
+                          <label htmlFor="item-category">Категория</label>
+                          <div className="inventory-category-dropdown" ref={categoryDropdownRef}>
+                            <button
+                              type="button"
+                              id="item-category"
+                              className="inventory-category-trigger"
+                              onClick={() => setCategoryDropdownOpen((prev) => !prev)}
+                              aria-haspopup="listbox"
+                              aria-expanded={categoryDropdownOpen}
+                            >
+                              <span className="inventory-category-trigger__main">
+                                <i className="fa-solid fa-table-cells-large" aria-hidden="true" />
+                                <span>{currentCategoryLabel}</span>
+                              </span>
+                              <i className={`fa-solid fa-chevron-${categoryDropdownOpen ? 'up' : 'down'}`} aria-hidden="true" />
+                            </button>
+                            {categoryDropdownOpen && (
+                              <div className="inventory-category-options" role="listbox">
+                                {CATEGORIES.map((cat) => (
+                                  <button
+                                    type="button"
+                                    key={cat.id}
+                                    className={`inventory-category-option${cat.id === itemForm.category ? ' is-active' : ''}`}
+                                    onClick={() => {
+                                      handleItemFormChange('category', cat.id as InventoryCategoryId);
+                                      setCategoryDropdownOpen(false);
+                                    }}
+                                    role="option"
+                                    aria-selected={cat.id === itemForm.category}
+                                  >
+                                    <span className="inventory-category-option__icon">
+                                      <i className={resolveIconClass(cat.icon)} aria-hidden="true" />
+                                    </span>
+                                    <span className="inventory-category-option__label">{cat.label}</span>
+                                    {cat.id === itemForm.category && (
+                                      <i className="fa-solid fa-check inventory-category-option__check" aria-hidden="true" />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="inventory-form-group">
+                          <label htmlFor="item-quantity">Количество</label>
+                          <div className="inventory-number-control">
+                            <button type="button" className="inventory-number-btn" onClick={() => adjustNumberField('quantity', -1)} aria-label="Уменьшить количество">
+                              <i className="fa-solid fa-minus" />
+                            </button>
+                            <div className="inventory-field-wrapper inventory-field-wrapper--number">
+                              <i className="fa-solid fa-boxes-stacked" aria-hidden="true" />
+                              <input id="item-quantity" className="inventory-field" type="number" min={1} step={1} value={itemForm.quantity} onChange={(e) => handleItemFormChange('quantity', Math.max(1, Number(e.target.value || 1)))} />
+                            </div>
+                            <button type="button" className="inventory-number-btn" onClick={() => adjustNumberField('quantity', 1)} aria-label="Увеличить количество">
+                              <i className="fa-solid fa-plus" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="inventory-form-group">
+                          <label htmlFor="item-weight">Вес (кг)</label>
+                          <div className="inventory-number-control">
+                            <button type="button" className="inventory-number-btn" onClick={() => adjustNumberField('weight', -0.1)} aria-label="Уменьшить вес">
+                              <i className="fa-solid fa-minus" />
+                            </button>
+                            <div className="inventory-field-wrapper inventory-field-wrapper--number">
+                              <i className="fa-solid fa-weight-hanging" aria-hidden="true" />
+                              <input
+                                id="item-weight"
+                                className="inventory-field"
+                                type="number"
+                                min={0}
+                                step={0.1}
+                                placeholder="Вес предмета"
+                                value={itemForm.weight === '' ? '' : itemForm.weight}
+                                onChange={(e) => handleItemFormChange('weight', e.target.value === '' ? '' : Number(e.target.value))}
+                              />
+                            </div>
+                            <button type="button" className="inventory-number-btn" onClick={() => adjustNumberField('weight', 0.1)} aria-label="Увеличить вес">
+                              <i className="fa-solid fa-plus" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="inventory-form-group inventory-form-group--note">
+                          <label htmlFor="item-note">Заметки</label>
+                          <div className="inventory-field-wrapper inventory-field-wrapper--textarea">
+                            <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
+                            <textarea id="item-note" className="inventory-field" placeholder="Заметки (необязательно)" value={itemForm.note} onChange={(e) => handleItemFormChange('note', e.target.value)} />
+                          </div>
+                        </div>
                       </div>
-                      <div className="inventory-form-group">
-                        <label htmlFor="item-category">Категория</label>
-                        <select id="item-category" value={itemForm.category} onChange={(e) => handleItemFormChange('category', e.target.value as InventoryCategoryId)} className="inventory-field">
-                          {CATEGORIES.map((c) => (
-                            <option key={c.id} value={c.id}>{c.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="inventory-form-group">
-                        <label htmlFor="item-quantity">Количество</label>
-                        <input id="item-quantity" className="inventory-field" type="number" min={1} step={1} value={itemForm.quantity} onChange={(e) => handleItemFormChange('quantity', Math.max(1, Number(e.target.value || 1)))} />
-                      </div>
-                      <div className="inventory-form-group" style={{gridColumn: '1 / -1'}}>
-                        <label htmlFor="item-weight">Вес (кг)</label>
-                        <input id="item-weight" className="inventory-field" type="number" min={0} step={0.1} value={itemForm.weight} onChange={(e) => handleItemFormChange('weight', Number(e.target.value || 0))} />
-                      </div>
-                      <div className="inventory-form-group" style={{gridColumn: '1 / -1'}}>
-                        <label htmlFor="item-note">Заметки</label>
-                        <textarea id="item-note" className="inventory-field" placeholder="Заметки (необязательно)" value={itemForm.note} onChange={(e) => handleItemFormChange('note', e.target.value)} />
-                      </div>
-                      <div className="inventory-form-group" style={{gridColumn: '1 / -1'}}>
-                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    </div>
+                      <div className="inventory-form-card inventory-form-card--full">
+                        <div className="inventory-form-section-header">
+                          <h5>Параметры</h5>
+                          <p>Отметь дополнительные опции предмета</p>
+                        </div>
+                        <div className="inventory-toggle-grid">
                           <label className="inventory-toggle">
                             <input
                               type="checkbox"
@@ -1911,7 +2069,10 @@ const CharacterSheetPage: React.FC = () => {
                               onChange={(e) => handleItemFormChange('system', e.target.checked)}
                             />
                             <span className="slider" aria-hidden="true" />
-                            <span className="inventory-toggle__label">Системное</span>
+                            <span className="inventory-toggle__label">
+                              <i className="fa-solid fa-shield-halved" aria-hidden="true" />
+                              Системное
+                            </span>
                           </label>
                           <label className="inventory-toggle">
                             <input
@@ -1920,11 +2081,14 @@ const CharacterSheetPage: React.FC = () => {
                               onChange={(e) => handleItemFormChange('hasAttack', e.target.checked)}
                             />
                             <span className="slider" aria-hidden="true" />
-                            <span className="inventory-toggle__label">Есть атака</span>
+                            <span className="inventory-toggle__label">
+                              <i className="fa-solid fa-crosshairs" aria-hidden="true" />
+                              Есть атака
+                            </span>
                           </label>
                         </div>
+                        {/* ... (старая, скрытая форма атаки) ... */}
                       </div>
-                      {/* ... (старая, скрытая форма атаки) ... */}
                     </div>
                     <div className="inventory-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'auto', paddingTop: '16px' }}>
                       <button type="button" className="inventory-cancel-btn" onClick={resetAndShowList}>Отмена</button>
@@ -2085,13 +2249,12 @@ const CharacterSheetPage: React.FC = () => {
                 const categoryLabel = sk.category ? SKILL_CATEGORY_LABELS[sk.category as SkillCategory] ?? sk.category : undefined;
                 const showMeta = Boolean(sk.manaCost?.trim() || categoryLabel);
                 return (
-                  <li key={`${sk.name}-${sIdx}`} className={`skill-item${sk.favorite ? ' skill-item--favorite' : ''}`}>
+                  <li key={`${sk.name}-${sIdx}`} className="skill-item">
                     <div className="skill-row">
                       <div>
                         <div className="skill-name-row">
                           <div className="skill-name">
                             <i className={resolveIconClass(sk.icon)} /> {sk.name}
-                            {sk.favorite && <i className="fa-solid fa-star skill-favorite-indicator" title="Избранный навык" />}
                           </div>
                           {sk.rank && <span className="skill-rank-chip">{sk.rank}</span>}
                         </div>
@@ -2112,14 +2275,6 @@ const CharacterSheetPage: React.FC = () => {
                         )}
                       </div>
                       <div className="skill-actions">
-                        <button
-                          type="button"
-                          className={`skill-favorite-btn${sk.favorite ? ' is-active' : ''}`}
-                          onClick={() => toggleSkillFavorite(sIdx)}
-                          title={sk.favorite ? 'Убрать из избранных' : 'В избранные'}
-                        >
-                          <i className={sk.favorite ? 'fa-solid fa-star' : 'fa-regular fa-star'} />
-                        </button>
                         {unlocked && !!(sk.perks?.length) && (
                           <button type="button" className="perks-open-btn" onClick={() => openPerks(sIdx)}>
                             <i className="fa-solid fa-sitemap" /> Выбрать перки

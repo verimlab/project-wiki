@@ -1,0 +1,170 @@
+/* src/components/virtual-table/VTBoard.css */
+
+.vt-stage {
+  min-width: 0;
+}
+.vt-stage--immersive {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  min-height: 100%;
+}
+.vt-stage--immersive .vt-board-wrapper {
+  height: 100%;
+}
+.vt-stage--immersive .vt-board {
+  height: auto;
+}
+.vt-stage--immersive .vt-board-wrapper {
+  border-radius: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+.vt-stage--immersive .vt-board {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+}
+.vt-board-wrapper {
+  border-radius: 32px;
+  padding: 12px;
+  background: rgba(8, 20, 44, 0.7);
+  border: 1px solid rgba(147, 192, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+.vt-board {
+  --vt-grid-size: 56px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 24px;
+  overflow: visible;
+  background-color: #010c1c;
+  background-position: top left;
+  background-repeat: no-repeat;
+  border: 1px solid rgba(147, 192, 255, 0.18);
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.vt-board::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: var(--vt-grid-size) var(--vt-grid-size), var(--vt-grid-size) var(--vt-grid-size);
+}
+.vt-board.has-grid::before {
+  opacity: 1;
+}
+.vt-board.is-coords::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(10, 26, 48, 0.35), transparent 70%);
+  pointer-events: none;
+}
+.vt-axis {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: absolute;
+  font-size: 10px;
+  color: rgba(238, 246, 255, 0.85);
+  pointer-events: none;
+}
+.vt-axis li {
+  position: absolute;
+}
+.vt-axis-x {
+  top: 4px;
+  left: 0;
+  right: 0;
+  height: 0;
+}
+.vt-axis-x li {
+  transform: translateX(-50%);
+}
+.vt-axis-y {
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 0;
+}
+.vt-axis-y li {
+  transform: translateY(-50%);
+}
+.vt-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  text-align: center;
+  color: rgba(221, 234, 255, 0.8);
+  font-size: 18px;
+}
+.vt-empty i {
+  font-size: 40px;
+  opacity: 0.6;
+}
+
+.vt-measure {
+  position: absolute;
+  height: 2px;
+  background: rgba(252, 211, 77, 0.85);
+  transform-origin: 0 50%;
+  pointer-events: none;
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(252, 211, 77, 0.4);
+}
+.vt-measure.is-active {
+  background: rgba(252, 211, 77, 1);
+}
+.vt-measure__label {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(5, 12, 28, 0.85);
+  color: #ffe3a3;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(252, 211, 77, 0.4);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.vt-ping {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 99, 132, 0.9);
+  box-shadow: 0 0 16px rgba(255, 99, 132, 0.5);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: vt-ping-pulse 1s ease-out infinite;
+}
+
+@keyframes vt-ping-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0;
+  }
+}

@@ -1,0 +1,85 @@
+.dice-2d-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.dice-2d-die {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  animation: dice-pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dice-2d-shape-bg {
+  fill: rgba(10, 20, 40, 0.85);
+  stroke: rgba(130, 172, 255, 0.5);
+  stroke-width: 2px;
+  transition: all 0.2s ease;
+}
+
+.dice-2d-shape-shadow {
+  fill: rgba(10, 20, 40, 0.5);
+  stroke: none;
+  filter: blur(5px);
+}
+
+.dice-2d-value {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(130, 172, 255, 0.5);
+}
+
+.dice-2d-die.is-rolling .dice-2d-value {
+  color: #8cc6ff;
+  opacity: 0.7;
+}
+
+.dice-2d-die.is-settled.is-crit .dice-2d-shape-bg {
+  stroke: #fcd34d;
+  filter: drop-shadow(0 0 20px rgba(252, 211, 77, 0.5));
+}
+.dice-2d-die.is-settled.is-crit .dice-2d-value {
+  color: #fcd34d;
+}
+
+.dice-2d-die.is-settled.is-fail .dice-2d-shape-bg {
+  stroke: #fca5a5;
+}
+.dice-2d-die.is-settled.is-fail .dice-2d-value {
+  color: #fca5a5;
+}
+
+.dice-2d-die.is-fading {
+  animation: dice-fade-out 1s ease-out forwards;
+}
+
+@keyframes dice-pop-in {
+  from {
+    transform: scale(0.5) rotate(-90deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes dice-fade-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+}

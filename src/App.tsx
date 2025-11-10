@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Routes } from 'react-router-dom'; 
+import { Route, Routes, useLocation } from 'react-router-dom'; 
 import TopBar from './components/TopBar';
 import { useAuth } from './components/AuthContext';
 
@@ -22,6 +22,7 @@ import ItemsPage from './components/GmItemsPage';
 import RulesPage from './components/RulesPage';
 import CombatRulePage from './components/CombatRulePage';
 import ActionEconomyRulePage from './components/ActionEconomyRulePage';
+import VirtualTablePage from './components/pages/VirtualTablePage';
 import NotFoundPage from './components/NotFoundPage';
 
 import { SearchProvider } from './components/SearchContext'; 
@@ -30,6 +31,8 @@ import GlobalSearchResults from './components/GlobalSearchResults';
 
 const App: React.FC = () => {
   const { loading, role } = useAuth();
+  const location = useLocation();
+  const hideTopBar = location.pathname.startsWith('/virtual-table');
 
   if (loading && role === null) {
     return (
@@ -52,7 +55,7 @@ const App: React.FC = () => {
 
   return (
     <SearchProvider>
-        <TopBar />
+        {!hideTopBar && <TopBar />}
         <GlobalSearchResults />
         {/*<AssistantWidget />*/}
 
@@ -77,6 +80,7 @@ const App: React.FC = () => {
           <Route path="/rules" element={<RulesPage />} />
           <Route path="/rules/combat" element={<CombatRulePage />} />
           <Route path="/rules/action-economy" element={<ActionEconomyRulePage />} />
+          <Route path="/virtual-table" element={<VirtualTablePage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
     </SearchProvider>

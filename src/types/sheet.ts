@@ -116,6 +116,7 @@ export type InventoryItem = {
   note?: string;
   system?: boolean;
   hasAttack?: boolean;
+  createdAt?: number;
 };
 
 export type AttackFields = {

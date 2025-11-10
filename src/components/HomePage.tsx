@@ -8,7 +8,6 @@ import type { FormEvent } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Link, useSearchParams } from 'react-router-dom';
 import './HomePage.css';
-import DicePreview3D from './DicePreview3D';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
 import { WEAPONS, ARMOR } from '../data/equipment';
@@ -21,7 +20,15 @@ type DiceResultGroup = {
   rolls: number[];
 };
 
-const sectors: Array<{ id: string; label: string; iconClass: string; restrictedTo?: 'gm' | 'player' }> = [
+type SectorConfig = {
+  id: string;
+  label: string;
+  iconClass: string;
+  restrictedTo?: 'gm' | 'player';
+  lockedForPlayers?: boolean;
+};
+
+const sectors: SectorConfig[] = [
   { id: 'gm', label: 'GM Hub', iconClass: 'fa-solid fa-hat-wizard', restrictedTo: 'gm' },
   { id: 'chars', label: 'Персонажи', iconClass: 'fa-solid fa-user-group' },
   { id: 'campaign', label: 'Кампания', iconClass: 'fa-solid fa-flag' },
@@ -33,7 +40,29 @@ const sectors: Array<{ id: string; label: string; iconClass: string; restrictedT
   { id: 'notes', label: 'Заметки', iconClass: 'fa-regular fa-note-sticky' },
   { id: 'gazette', label: 'Газета Кара\'нокта', iconClass: 'fa-regular fa-newspaper' },
   { id: 'rules', label: 'Правила', iconClass: 'fa-solid fa-scale-balanced' },
+  { id: 'virtual-table', label: 'Виртуальный стол', iconClass: 'fa-solid fa-chess-board', lockedForPlayers: true },
 ];
+
+const getDiceIconClass = (faces: number) => {
+  switch (faces) {
+    case 4:
+      return 'fa-solid fa-dice-d4';
+    case 6:
+      return 'fa-solid fa-dice-d6';
+    case 8:
+      return 'fa-solid fa-dice-d8';
+    case 10:
+    case 100:
+    case 1000:
+      return 'fa-solid fa-dice-d10';
+    case 12:
+      return 'fa-solid fa-dice-d12';
+    case 20:
+      return 'fa-solid fa-dice-d20';
+    default:
+      return 'fa-solid fa-dice';
+  }
+};
 
 type SearchResultItem = {
   type: 'Оружие' | 'Броня' | 'Эпизод' | 'Заметка' | 'Персонаж' | 'Раса' | 'Мир' | 'Существо';
@@ -236,6 +265,7 @@ const HomePage: React.FC = () => {
 
   const sectorRoutes: Record<string, string> = {
     gm: '/gm-hub',
+    'virtual-table': '/virtual-table',
     campaign: '/campaign',
     equipment: '/equipment',
     notes: '/notes',
@@ -390,13 +420,25 @@ const HomePage: React.FC = () => {
         <section className="hw-grid" aria-label="Сектора">
           {sectors
             .filter((s) => !s.restrictedTo || s.restrictedTo === role)
-            .map((s) => (
-            <Link
-              key={s.id}
-              className="hw-card"
-              to={sectorRoutes[s.id] ?? `#${s.id}`}
-              aria-label={s.label}
-            >
+            .map((s) => {
+              const isLocked = s.lockedForPlayers && role !== 'gm';
+              const cardClass = `hw-card${isLocked ? ' is-locked' : ''}`;
+              const linkTarget = isLocked ? '#' : sectorRoutes[s.id] ?? `#${s.id}`;
+              const linkProps = isLocked
+                ? {
+                    onClick: (event: React.MouseEvent<HTMLAnchorElement>) => event.preventDefault(),
+                    tabIndex: -1,
+                    'aria-disabled': true,
+                  }
+                : undefined;
+              return (
+                <Link
+                  key={s.id}
+                  className={cardClass}
+                  to={linkTarget}
+                  aria-label={s.label}
+                  {...linkProps}
+                >
               <div className="hw-card-header">
                 <span className="hw-card-icon">
                   <i className={s.iconClass} aria-hidden />
@@ -404,10 +446,19 @@ const HomePage: React.FC = () => {
                 <span className="hw-card-title">{s.label}</span>
               </div>
               <span className="hw-card-cta">
-                Перейти <i className="fa-solid fa-arrow-right" aria-hidden />
+                {isLocked ? (
+                  <>
+                    Только мастер <i className="fa-solid fa-lock" aria-hidden />
+                  </>
+                ) : (
+                  <>
+                    Перейти <i className="fa-solid fa-arrow-right" aria-hidden />
+                  </>
+                )}
               </span>
             </Link>
-          ))}
+              );
+            })}
         </section>
       </main>
 
@@ -496,7 +547,12 @@ const HomePage: React.FC = () => {
                 <div className="hw-dice-rolling-grid">
                   {rolledDice.map((d) => (
                     <div key={d.id} className="hw-die-roll">
-                      <DicePreview3D faces={d.faces} value={d.value} size={72} spinMs={1000} />
+                      <div className="hw-die-icon-wrap">
+                        <div className={`hw-die-icon hw-die--d${d.faces}`}>
+                          <i className={getDiceIconClass(d.faces)} aria-hidden />
+                          <span className="hw-die-value">{d.value}</span>
+                        </div>
+                      </div>
                       <div className="hw-die-caption">d{d.faces}</div>
                     </div>
                   ))}

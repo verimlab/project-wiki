@@ -1,0 +1,364 @@
+/* src/components/virtual-table/VTSidebar.css */
+
+.vt-panel-card {
+  background: rgba(8, 18, 36, 0.85);
+  border: 1px solid rgba(147, 192, 255, 0.16);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.vt-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.vt-panel-header h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+}
+.vt-panel-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  color: rgba(207, 231, 255, 0.65);
+  margin: 0;
+}
+.vt-panel-pill {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 6px 12px;
+  border: 1px solid rgba(115, 168, 255, 0.35);
+}
+.vt-panel-note {
+  font-size: 13px;
+  color: rgba(226, 240, 255, 0.8);
+  margin: 0;
+}
+.vt-upload {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px dashed rgba(118, 168, 255, 0.4);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  color: rgba(233, 245, 255, 0.9);
+  background: rgba(12, 24, 44, 0.6);
+}
+.vt-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.vt-upload.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.vt-backdrop-preview {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(147, 192, 255, 0.18);
+  margin: 0;
+}
+.vt-backdrop-preview img {
+  display: block;
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+}
+.vt-backdrop-preview figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 13px;
+  background: rgba(7, 15, 30, 0.6);
+}
+.vt-backdrop-empty {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(147, 192, 255, 0.24);
+  color: rgba(233, 245, 255, 0.72);
+}
+.vt-link-button {
+  background: none;
+  border: none;
+  color: #8cc6ff;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.vt-muted {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(223, 235, 255, 0.55);
+  margin: 0;
+}
+.vt-token-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vt-token-upload {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-radius: 14px;
+  border: 1px dashed rgba(133, 197, 255, 0.4);
+  background: rgba(3, 10, 18, 0.5);
+  padding: 10px 12px;
+  cursor: pointer;
+  color: rgba(233, 245, 255, 0.9);
+}
+.vt-token-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.vt-token-upload.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.vt-token-upload.is-disabled input {
+  cursor: not-allowed;
+}
+.vt-token-upload__body strong {
+  display: block;
+  font-size: 14px;
+}
+.vt-token-upload__body span {
+  display: block;
+  font-size: 12px;
+  color: rgba(223, 234, 255, 0.7);
+}
+.vt-token-upload i {
+  font-size: 18px;
+}
+.vt-token-form input:not([type='file']),
+.vt-token-form select {
+  border-radius: 12px;
+  border: 1px solid rgba(133, 197, 255, 0.3);
+  background: rgba(3, 10, 18, 0.65);
+  padding: 8px 12px;
+  color: #e9f4ff;
+}
+.vt-token-form-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.vt-color-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.vt-color {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.vt-color.is-active {
+  border-color: rgba(255, 255, 255, 0.8);
+}
+.vt-color[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.vt-primary-button {
+  border: none;
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 600;
+  background: linear-gradient(120deg, #7bd9ff, #9f7bff);
+  color: #04111f;
+  cursor: pointer;
+}
+.vt-initiative {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vt-initiative-empty {
+  color: rgba(221, 234, 255, 0.72);
+  font-size: 14px;
+}
+.vt-init-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(115, 168, 255, 0.18);
+}
+.vt-init-row:last-child {
+  border-bottom: none;
+}
+.vt-init-row.is-active {
+  background: rgba(91, 162, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 10px;
+}
+.vt-init-chip {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(133, 197, 255, 0.35);
+  padding: 6px 10px;
+  background: rgba(3, 10, 18, 0.65);
+  color: inherit;
+  cursor: pointer;
+}
+.vt-init-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+.vt-init-dot.has-image {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background-size: cover;
+  background-position: center;
+}
+.vt-init-input {
+  width: 64px;
+  text-align: center;
+  border-radius: 10px;
+  border: 1px solid rgba(133, 197, 255, 0.35);
+  background: rgba(3, 10, 18, 0.65);
+  color: #e9f4ff;
+  padding: 6px 0;
+}
+.vt-icon-button {
+  border: none;
+  background: none;
+  color: rgba(221, 234, 255, 0.75);
+  cursor: pointer;
+  font-size: 16px;
+}
+.vt-icon-button:hover {
+  color: #ff9ca0;
+}
+.vt-icon-button--file {
+  position: relative;
+  overflow: hidden;
+}
+.vt-icon-button--file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.vt-icon-button.is-busy {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.vt-init-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* src/components/virtual-table/VTSidebar.css */
+
+/* ... (все стили .vt-panel-card, .vt-upload, .vt-token-form и т.д. остаются БЕЗ ИЗМЕНЕНИЙ) ... */
+/* ... (скопируй их из своего старого VTSidebar.css) ... */
+
+/* ----- ДОБАВЬ ЭТИ СТИЛИ В КОНЕЦ ФАЙЛА ----- */
+
+/* Контейнер для прокручиваемого контента */
+.vt-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  overflow-y: auto;
+  flex-grow: 1;
+  min-height: 0;
+}
+.vt-sidebar.is-collapsed .vt-sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.vt-sidebar:not(.is-collapsed) .vt-sidebar-content {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+/* Кнопка сворачивания */
+.vt-sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  left: -36px; /* Выступ слева от панели */
+  transform: translateY(-50%);
+  
+  width: 36px;
+  height: 48px;
+  border: none;
+  background: rgba(3, 8, 16, 0.9);
+  color: #8cc6ff;
+  border: 1px solid rgba(147, 192, 255, 0.16);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  cursor: pointer;
+  font-size: 16px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+}
+
+.vt-sidebar-toggle:hover {
+  background: rgba(8, 18, 36, 1);
+}
+.vt-sidebar.is-collapsed .vt-sidebar-toggle {
+  box-shadow: 0 0 12px rgba(6, 12, 24, 0.6);
+}
+
+/* Новая панель настроек (из VTPHeader) */
+.vt-settings-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+/* ... (скопируй стили .vt-toggle и .vt-select из VTPHeader.css сюда, если их нет) ... */
+.vt-toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  color: rgba(233, 245, 255, 0.8);
+}
+.vt-toggle input {
+  width: 18px;
+  height: 18px;
+}
+.vt-select {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: rgba(233, 245, 255, 0.8);
+  gap: 4px;
+}
+.vt-select select {
+  background: rgba(9, 24, 46, 0.75);
+  border: 1px solid rgba(130, 172, 255, 0.35);
+  color: inherit;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
